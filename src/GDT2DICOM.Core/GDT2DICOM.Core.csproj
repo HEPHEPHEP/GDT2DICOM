@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Gdt2Dicom.Core</RootNamespace>
+    <AssemblyName>GDT2DICOM.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="fo-dicom" Version="5.2.6" />
+    <PackageReference Include="fo-dicom.Codecs" Version="5.16.7" />
+    <PackageReference Include="fo-dicom.Imaging.Desktop" Version="5.2.6" />
+    <PackageReference Include="PdfSharp" Version="6.2.4" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+</Project>

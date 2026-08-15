@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Gdt2Dicom.TestClient</RootNamespace>
+    <AssemblyName>GDT2DICOM.TestClient</AssemblyName>
+    <ApplicationIcon>..\..\assets\gdt2dicom.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\GDT2DICOM.Core\GDT2DICOM.Core.csproj" />
+  </ItemGroup>
+
+</Project>

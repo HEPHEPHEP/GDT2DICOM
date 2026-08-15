@@ -1,0 +1,8 @@
+bin/
+obj/
+dist/
+installer/out/
+installer/Files.wxs
+*.user
+*.suo
+.vs/

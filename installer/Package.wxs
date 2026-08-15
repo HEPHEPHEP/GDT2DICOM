@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Installationspaket für GDT2DICOM.
+
+  Bewusst ein MSI und keine Setup-Exe: Ein Windows-Dienst wird damit über die dafür
+  vorgesehenen Mechanismen registriert, gestartet und bei der Deinstallation wieder entfernt.
+  Außerdem lässt sich ein MSI unbeaufsichtigt ausrollen (msiexec /i GDT2DICOM.msi /qn), was
+  in Praxisnetzen mit mehreren Arbeitsplätzen zählt.
+
+  Die Dateiliste steht nicht hier, sondern wird von build-installer.ps1 aus dem
+  Veröffentlichungsordner erzeugt (Files.wxs). Von Hand gepflegt wäre sie bei über
+  200 Dateien schon nach dem ersten Paketwechsel veraltet.
+
+  Was das Paket bewusst NICHT anfasst: C:\ProgramData\GDT2DICOM. Dort liegen Konfiguration,
+  Protokolle, Worklist und das DICOM-Archiv. Das sind Behandlungsunterlagen – eine
+  Deinstallation darf sie nicht mitnehmen.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
+
+  <Package Name="GDT2DICOM"
+           Manufacturer="Pliete.IT"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="6E5B1B4C-6A2E-4E2B-9C9D-8F1A2B3C4D5E"
+           Language="1031"
+           Codepage="1252"
+           Scope="perMachine"
+           InstallerVersion="500">
+
+    <SummaryInformation Description="GDT2DICOM – Middleware zwischen PVS und Sonographie"
+                        Manufacturer="Pliete.IT" />
+
+    <!--
+      Beim Aktualisieren wird die alte Fassung zuerst entfernt. AfterInstallValidate hält den
+      Dienst schon vor dem Kopieren an, sonst wären die Programmdateien gesperrt.
+    -->
+    <MajorUpgrade Schedule="afterInstallValidate"
+                  DowngradeErrorMessage="Es ist bereits eine neuere Fassung von GDT2DICOM installiert." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Launch Condition="Installed OR VersionNT64"
+            Message="GDT2DICOM benötigt ein 64-Bit-Windows." />
+
+    <Icon Id="AppIcon" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://pliete.it" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/HEPHEPHEP/GDT2DICOM" />
+    <Property Id="ARPCONTACT" Value="info@pliete.it" />
+    <!-- ARPNOMODIFY setzt WixUI_InstallDir bereits selbst; hier nochmals gesetzt wäre es ein Konflikt. -->
+
+    <!--
+      Firewall-Regel nur auf Wunsch: Der DICOM-Port ist einstellbar, eine fest verdrahtete
+      Regel für 104 wäre bei abweichender Konfiguration wirkungslos und irreführend.
+      Aufruf: msiexec /i GDT2DICOM.msi FIREWALL=1 DICOMPORT=104
+    -->
+    <Property Id="FIREWALL" Value="0" />
+    <Property Id="DICOMPORT" Value="104" />
+
+    <Feature Id="Main" Title="GDT2DICOM" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="ProgrammDateien" />
+      <ComponentRef Id="DienstKomponente" />
+      <ComponentRef Id="Startmenue" />
+      <ComponentRef Id="FirewallRegel" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="GDT2DICOM" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartmenueOrdner" Name="GDT2DICOM" />
+    </StandardDirectory>
+
+    <!--
+      GDT2DICOM.Service.exe gehört zwingend in diese Komponente und muss deren Schlüsselpfad
+      sein: Windows Installer nimmt den Schlüsselpfad der Komponente als Programmdatei des
+      Dienstes. Mit einem Registrierungswert als Schlüsselpfad wird der Dienst stillschweigend
+      gar nicht angelegt, und die anschließende Konfiguration scheitert mit „Der Dienst ''
+      konnte nicht konfiguriert werden".
+
+      Deshalb ist diese Datei aus der erzeugten Dateiliste ausgenommen und steht hier.
+    -->
+    <Component Id="DienstKomponente" Directory="INSTALLFOLDER" Guid="8A1D2C3B-4E5F-6A7B-8C9D-0E1F2A3B4C5D">
+      <File Id="DienstProgramm" Source="$(var.ServiceExe)" Name="GDT2DICOM.Service.exe" KeyPath="yes" />
+
+      <ServiceInstall Id="DienstEintrag"
+                      Name="GDT2DICOM"
+                      DisplayName="GDT2DICOM Middleware (PVS - Sonographie)"
+                      Description="Verbindet ein Praxisverwaltungssystem per GDT mit einem Ultraschallgeraet per DICOM (Worklist, Storage, MPPS)."
+                      Type="ownProcess"
+                      Start="auto"
+                      ErrorControl="normal"
+                      Account="LocalSystem"
+                      Vital="yes">
+        <!--
+          Nach einem Absturz von selbst wieder hochkommen: In einer Praxis merkt niemand,
+          dass der Dienst weg ist, bis das Sonogerät keine Worklist mehr bekommt.
+
+          Über util:ServiceConfig und nicht über das eingebaute ServiceConfigFailureActions:
+          Letzteres schreibt in die MSI-Tabelle MsiServiceConfigFailureActions, die laut
+          Windows-Installer-SDK "not [working] as expected" ist – hier bricht sie die
+          Installation mit Fehler 1939 ab, obwohl der Dienst unmittelbar davor korrekt
+          angelegt wurde. Die Aktion der Util-Erweiterung läuft nach InstallServices und
+          setzt die Wiederherstellungsoptionen zuverlässig.
+        -->
+        <util:ServiceConfig FirstFailureActionType="restart"
+                            SecondFailureActionType="restart"
+                            ThirdFailureActionType="restart"
+                            RestartServiceDelayInSeconds="60"
+                            ResetPeriodInDays="1" />
+      </ServiceInstall>
+
+      <ServiceControl Id="DienstSteuerung"
+                      Name="GDT2DICOM"
+                      Start="install"
+                      Stop="both"
+                      Remove="uninstall"
+                      Wait="yes" />
+    </Component>
+
+    <Component Id="Startmenue" Directory="StartmenueOrdner" Guid="1F2E3D4C-5B6A-7988-9A0B-1C2D3E4F5A6B">
+      <Shortcut Id="KonfigurationVerknuepfung"
+                Name="GDT2DICOM Konfiguration"
+                Description="Einstellungen, Status und Protokoll der Middleware"
+                Target="[INSTALLFOLDER]GDT2DICOM.Konfiguration.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="StartmenueOrdnerEntfernen" Directory="StartmenueOrdner" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="Software\Pliete.IT\GDT2DICOM"
+                     Name="Startmenue" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="FirewallRegel" Directory="INSTALLFOLDER" Guid="2B3C4D5E-6F7A-8B9C-0D1E-2F3A4B5C6D7E"
+               Condition="FIREWALL = &quot;1&quot;">
+      <RegistryValue Root="HKLM" Key="Software\Pliete.IT\GDT2DICOM"
+                     Name="Firewall" Type="integer" Value="1" KeyPath="yes" />
+      <fw:FirewallException Id="DicomEingehend"
+                            Name="GDT2DICOM (DICOM)"
+                            Description="Eingehende DICOM-Verbindungen vom Ultraschallgeraet"
+                            Port="[DICOMPORT]"
+                            Protocol="tcp"
+                            Scope="localSubnet"
+                            Profile="all" />
+    </Component>
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <!--
+      Der Lizenzdialog entfällt: Eigene Nutzungsbedingungen sind hier nicht hinterlegt, und
+      ein Dialog, der zur Zustimmung zu einem Platzhaltertext auffordert, wäre irreführend.
+      Der Weg führt daher direkt von der Begrüßung zur Ordnerauswahl.
+    -->
+    <UI>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2" />
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2" />
+    </UI>
+
+  </Package>
+</Wix>

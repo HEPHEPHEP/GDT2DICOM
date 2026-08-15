@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GDT2DICOM.Connector/GDT2DICOM.Connector.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/GDT2DICOM.Core/GDT2DICOM.Core.csproj" />
+    <Project Path="src/GDT2DICOM.Gui/GDT2DICOM.Gui.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/GDT2DICOM.Service/GDT2DICOM.Service.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/GDT2DICOM.TestClient/GDT2DICOM.TestClient.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+</Solution>

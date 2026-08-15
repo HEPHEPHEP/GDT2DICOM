@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Gdt2Dicom.Gui</RootNamespace>
+    <AssemblyName>GDT2DICOM.Konfiguration</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\gdt2dicom.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Als Resource in die Assembly eingebettet: keine lose Datei, die verloren gehen kann. -->
+    <Resource Include="Assets\pliete-logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GDT2DICOM.Core\GDT2DICOM.Core.csproj" />
+  </ItemGroup>
+
+</Project>

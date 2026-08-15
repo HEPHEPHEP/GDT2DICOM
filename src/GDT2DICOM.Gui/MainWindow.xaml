@@ -1,0 +1,990 @@
+<Window x:Class="Gdt2Dicom.Gui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Gdt2Dicom.Gui"
+        Title="GDT2DICOM – Middleware PVS ↔ Sonographie"
+        Height="820" Width="1080" MinHeight="620" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        FontSize="12">
+
+    <Window.Resources>
+        <Style TargetType="Grid" x:Key="FormGrid">
+            <Setter Property="Margin" Value="0,2,0,2" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+
+        <!-- ==================== Fußleiste ==================== -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource PanelBrush}" BorderBrush="#D9DDE3"
+                BorderThickness="0,1,0,0" Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="●" Margin="0,0,6,0" FontSize="14"
+                               Foreground="{Binding HasUnsavedChanges, Converter={x:Static local:BoolToBrushConverter.PendingSaved}}" />
+                    <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Neu laden" Click="OnReloadClick" />
+                    <Button Content="Verwerfen" Click="OnDiscardClick" />
+                    <Button Content="Speichern und übernehmen" Click="OnSaveClick" MinWidth="180"
+                            FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TabControl Margin="10" x:Name="Tabs">
+
+            <!-- ==================== Status ==================== -->
+            <TabItem Header="  Status  " x:Name="StatusTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+
+                        <GroupBox Header="Windows-Dienst">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="Dienstzustand" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ServiceStateText}" VerticalAlignment="Center"
+                                               FontWeight="SemiBold" />
+
+                                    <Label Grid.Row="1" Content="Steuerkanal" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ConnectionText}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button Content="Installieren" Click="OnInstallServiceClick" />
+                                    <Button Content="Starten" Click="OnStartServiceClick" />
+                                    <Button Content="Stoppen" Click="OnStopServiceClick" />
+                                    <Button Content="Neu starten" Click="OnRestartServiceClick" />
+                                    <Button Content="Entfernen" Click="OnUninstallServiceClick" />
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                                           Text="Diese Aktionen benötigen Administratorrechte; Windows fragt jeweils nach." />
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="Verzeichnisse">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Zugriff prüfen" Click="OnCheckPathsClick" MinWidth="140" />
+                                    <TextBlock x:Name="PathCheckSummary" VerticalAlignment="Center" Margin="8,0,0,0"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0"
+                                           Text="Die Prüfung läuft im Dienst, nicht in dieser Oberfläche. Nur so zeigt sich, ob der Dienst die Verzeichnisse wirklich erreicht – bei Netzwerkfreigaben ist das der Unterschied, der zählt." />
+                                <DataGrid x:Name="PathCheckGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                                          HeadersVisibility="Column" MaxHeight="200" Margin="0,8,0,0"
+                                          GridLinesVisibility="Horizontal" Visibility="Collapsed">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Verzeichnis" Binding="{Binding Label}" Width="150" />
+                                        <DataGridTextColumn Header="Pfad" Binding="{Binding Path}" Width="*" />
+                                        <DataGridTextColumn Header="Netz" Binding="{Binding IsUnc}" Width="50" />
+                                        <DataGridTextColumn Header="Zugriff" Binding="{Binding Ok}" Width="60" />
+                                        <DataGridTextColumn Header="Hinweis" Binding="{Binding Error}" Width="260" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="Laufende Dienste">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="190" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="DICOM-Server" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" x:Name="DicomStateText" />
+
+                                <Label Grid.Row="1" Content="GDT-Überwachung" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" x:Name="GdtStateText" />
+
+                                <Label Grid.Row="2" Content="Letzte Aktivität" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center"
+                                           Text="{Binding Status.LastActivity}" TextWrapping="Wrap" />
+
+                                <Label Grid.Row="3" Content="Läuft seit" />
+                                <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" x:Name="UptimeText" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Zähler seit Dienststart">
+                            <UniformGrid Columns="3" x:Name="CounterPanel" />
+                        </GroupBox>
+
+                        <GroupBox Header="Untersuchungen, die gerade eintreffen">
+                            <DataGrid ItemsSource="{Binding PendingStudies}" AutoGenerateColumns="False"
+                                      IsReadOnly="True" HeadersVisibility="Column" MinHeight="90" MaxHeight="180"
+                                      GridLinesVisibility="Horizontal" BorderThickness="1">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+                                    <DataGridTextColumn Header="Patienten-Nr." Binding="{Binding PatientId}" Width="120" />
+                                    <DataGridTextColumn Header="Objekte" Binding="{Binding InstanceCount}" Width="70" />
+                                    <DataGridTextColumn Header="Gerät (AE)" Binding="{Binding CallingAeTitle}" Width="110" />
+                                    <DataGridTextColumn Header="Study Instance UID" Binding="{Binding StudyInstanceUid}" Width="260" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== PVS / GDT ==================== -->
+            <TabItem Header="  PVS / GDT  ">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+
+                        <GroupBox Header="Verzeichnisse">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Auftragseingang (PVS schreibt)" />
+                                <TextBox Grid.Column="1" Text="{Binding Config.Gdt.InboxDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Column="2" Content="…" MinWidth="34" Margin="6,2,0,2"
+                                        Tag="Gdt.InboxDirectory" Click="OnBrowseFolderClick" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource Hint}"
+                                           Text="Dorthin exportiert das PVS die Untersuchungsanforderung (Satzart 6302)." />
+
+                                <Label Grid.Row="2" Content="Dateimuster Eingang" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.Gdt.InboxFilePattern, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="3" Content="Rücksatz-Ausgang (PVS liest)" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Config.Gdt.OutboxDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Row="3" Grid.Column="2" Content="…" MinWidth="34" Margin="6,2,0,2"
+                                        Tag="Gdt.OutboxDirectory" Click="OnBrowseFolderClick" />
+
+                                <Label Grid.Row="4" Content="Dateiname Rücksatz" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Config.Gdt.OutboxFileNamePattern, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <StackPanel Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2">
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="Platzhalter: {receiver} {sender} {patid} {date} {time} {counter}" />
+                                    <CheckBox Content="Neuen Rücksatz zurückhalten, solange der vorige noch im Ausgang liegt"
+                                              IsChecked="{Binding Config.Gdt.HoldBackWhileOutboxOccupied}" />
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="Wichtig bei festem Dateinamen ohne {counter}: sonst überschreibt eine zweite fertige Untersuchung den noch nicht abgeholten Befund der ersten." />
+                                </StackPanel>
+
+                                <Label Grid.Row="6" Content="Archiv verarbeiteter Aufträge" />
+                                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Config.Gdt.InboxArchiveDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Row="6" Grid.Column="2" Content="…" MinWidth="34" Margin="6,2,0,2"
+                                        Tag="Gdt.InboxArchiveDirectory" Click="OnBrowseFolderClick" />
+
+                                <StackPanel Grid.Row="7" Grid.Column="1">
+                                    <CheckBox Content="Auftragsdatei nach der Verarbeitung löschen"
+                                              IsChecked="{Binding Config.Gdt.DeleteInboxFileAfterProcessing}" />
+                                    <CheckBox Content="Eingangsverzeichnis laufend überwachen"
+                                              IsChecked="{Binding Config.Gdt.EnableInboxWatcher}" />
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="Abschalten, wenn das PVS die Schnittstelle ausschließlich über den Programmaufruf bedient. Dann bleibt die Auftragsdatei liegen, bis der Aufruf kommt – sonst greift sich die Überwachung die Datei vorher." />
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Format und Kennungen">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" />
+                                    <ColumnDefinition Width="300" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="GDT-Version" />
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding GdtVersions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding Config.Gdt.Version}" />
+
+                                <Label Grid.Row="1" Content="Zeichensatz" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Charsets}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding Config.Gdt.Charset}" />
+
+                                <Label Grid.Row="2" Content="GDT-ID der Middleware (FK 8316)" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.Gdt.SenderId, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="3" Content="GDT-ID des PVS (FK 8315)" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Config.Gdt.ReceiverId, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="4" Content="Gerätekennfeld (FK 8402)" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Config.Gdt.DeviceIdent, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="5" Content="Satzart Auftrag" />
+                                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Config.Gdt.RequestSatzart, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="6" Content="weitere Auftrags-Satzarten" />
+                                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding AdditionalSatzarten, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="7" Content="Satzart Rücksatz" />
+                                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Config.Gdt.ResponseSatzart, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Zeitverhalten">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Nachsehen alle … Sekunden" />
+                                <TextBox Grid.Column="1" Text="{Binding Config.Gdt.PollIntervalSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                           Text="Zusätzlich zum Datei-Watcher – auf Netzlaufwerken wichtig." />
+
+                                <Label Grid.Row="1" Content="Wartezeit auf fertige Datei (ms)" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.Gdt.FileSettleMilliseconds, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Programmaufruf durch das PVS">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
+                                           Text="Viele Praxisverwaltungssysteme legen die Auftragsdatei nicht nur ab, sondern starten zusätzlich ein Fremdprogramm. Tragen Sie dafür die folgende Zeile in der Geräte- oder Schnittstellenkonfiguration Ihres PVS ein. Wird kein Dateipfad übergeben, nimmt der Aufruf die neueste Datei aus dem Eingangsverzeichnis." />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="230" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Content="1. Untersuchung anfordern" />
+                                    <TextBox Grid.Column="1" x:Name="ConnectorCommandBox" IsReadOnly="True"
+                                             FontFamily="Consolas" Background="#F6F7F9" />
+                                    <Button Grid.Column="2" Content="Kopieren" MinWidth="80" Margin="6,2,0,2"
+                                            Click="OnCopyConnectorCommandClick" />
+
+                                    <Label Grid.Row="1" Content="2. Bilder abholen" />
+                                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="ConnectorFetchCommandBox" IsReadOnly="True"
+                                             FontFamily="Consolas" Background="#F6F7F9" />
+                                    <Button Grid.Row="1" Grid.Column="2" Content="Kopieren" MinWidth="80" Margin="6,2,0,2"
+                                            Click="OnCopyFetchCommandClick" />
+
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Hint}"
+                                               Text="Legen Sie im PVS zwei Geräteeinträge an. Der erste stellt den Patienten in die Worklist und kehrt sofort zurück. Der zweite wird nach der Untersuchung gedrückt und stellt den Rücksatz bereit – das PVS liest ihn dann beim Programmende ein." />
+
+                                    <Label Grid.Row="3" Content="Rücksatz ausliefern" />
+                                    <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding DeliveryModes}" DisplayMemberPath="Label"
+                                              SelectedValuePath="Value" SelectedValue="{Binding Config.Gdt.ResponseDelivery}"
+                                              HorizontalAlignment="Left" MinWidth="280" />
+
+                                    <CheckBox Grid.Row="4" Grid.Column="1" x:Name="WaitForResponseCheck"
+                                              Content="Beim ersten Aufruf auf den Rücksatz warten"
+                                              IsChecked="{Binding Config.Connector.WaitForResponse}" />
+
+                                    <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource Hint}"
+                                               Text="Alternative zum zweiten Aufruf: Der erste Aufruf bleibt offen, bis die Bilder da sind. Blockiert das PVS für die Dauer der Untersuchung – nur sinnvoll, wenn das Gerät im selben Raum steht." />
+
+                                    <Label Grid.Row="6" Content="Zeitlimit (Sekunden)"
+                                           IsEnabled="{Binding IsChecked, ElementName=WaitForResponseCheck}" />
+                                    <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal"
+                                                IsEnabled="{Binding IsChecked, ElementName=WaitForResponseCheck}">
+                                        <TextBox Width="80" Text="{Binding Config.Connector.WaitTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Text="  0 = kein Zeitlimit" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource MutedBrush}" />
+                                        <CheckBox Content="Wartefenster anzeigen" Margin="16,0,0,0"
+                                                  IsChecked="{Binding Config.Connector.ShowWaitWindow}" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="7" Grid.Column="1">
+                                        <CheckBox Content="Fehler als Meldungsfenster anzeigen"
+                                                  IsChecked="{Binding Config.Connector.ShowErrorDialogs}" />
+                                        <CheckBox Content="Auch bei Erfolg eine Meldung anzeigen (für die Einrichtung)"
+                                                  IsChecked="{Binding Config.Connector.ShowSuccessDialog}" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="8" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+                                        <Button Content="Aufruf prüfen (Diagnose)" Click="OnConnectorDiagnoseClick" MinWidth="180" />
+                                        <Button Content="Testauftrag über den Aufruf" Click="OnConnectorTestOrderClick" MinWidth="200" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="9" Grid.Column="1" x:Name="ConnectorStateText"
+                                               TextWrapping="Wrap" Margin="0,6,0,0" />
+                                </Grid>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Button Content="GDT-Testauftrag erzeugen" Click="OnCreateTestGdtClick" MinWidth="200" />
+                            <Button Content="Eingang öffnen" Click="OnOpenInboxClick" />
+                            <Button Content="Ausgang öffnen" Click="OnOpenOutboxClick" />
+                        </StackPanel>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== Feldkennungen ==================== -->
+            <TabItem Header="  Feldkennungen  ">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+
+                        <Border Background="#FFF7E6" BorderBrush="#E0B300" BorderThickness="1" Padding="10" Margin="0,0,0,12">
+                            <TextBlock TextWrapping="Wrap">
+                                Die Vorgaben folgen der verbreiteten Konvention. Einzelne Praxisverwaltungssysteme
+                                belegen Feldkennungen abweichend – maßgeblich ist die GDT-Dokumentation Ihres PVS.
+                                Prüfen Sie insbesondere die Kennungen für Dateianhänge, bevor Sie produktiv gehen.
+                            </TextBlock>
+                        </Border>
+
+                        <GroupBox Header="Kopfdaten">
+                            <UniformGrid Columns="2" x:Name="FieldMapHeader" />
+                        </GroupBox>
+
+                        <GroupBox Header="Patient">
+                            <UniformGrid Columns="2" x:Name="FieldMapPatient" />
+                        </GroupBox>
+
+                        <GroupBox Header="Untersuchung und Auftrag">
+                            <UniformGrid Columns="2" x:Name="FieldMapExam" />
+                        </GroupBox>
+
+                        <GroupBox Header="Befund und Anhänge">
+                            <UniformGrid Columns="2" x:Name="FieldMapResult" />
+                        </GroupBox>
+
+                        <GroupBox Header="Objektklammern (nur GDT 3.x)">
+                            <UniformGrid Columns="2" x:Name="FieldMapObjects" />
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== DICOM ==================== -->
+            <TabItem Header="  DICOM  ">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+
+                        <GroupBox Header="Eigener Knoten">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" />
+                                    <ColumnDefinition Width="300" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="AE-Titel" />
+                                <TextBox Grid.Column="1" Text="{Binding Config.Dicom.AeTitle, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                           Text="So muss die Middleware am Sonogerät eingetragen werden." />
+
+                                <Label Grid.Row="1" Content="Port" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.Dicom.Port, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                           Text="104 ist der Standard-DICOM-Port und benötigt keine Sonderrechte für Dienste." />
+
+                                <Label Grid.Row="2" Content="Netzwerkschnittstelle" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.Dicom.BindAddress, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="3" Content="Maximale PDU-Länge" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Config.Dicom.MaxPduLength, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="4" Content="Association-Timeout (s)" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Config.Dicom.AssociationTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Angebotene Dienste">
+                            <StackPanel>
+                                <CheckBox Content="Modality Worklist (C-FIND) – das Gerät holt sich die Aufträge"
+                                          IsChecked="{Binding Config.Dicom.EnableWorklist}" />
+                                <CheckBox Content="Storage (C-STORE) – das Gerät sendet Bilder und Reports"
+                                          IsChecked="{Binding Config.Dicom.EnableStorage}" />
+                                <CheckBox Content="MPPS (N-CREATE/N-SET) – das Gerät meldet Beginn und Ende der Untersuchung"
+                                          IsChecked="{Binding Config.Dicom.EnableMpps}" />
+                                <CheckBox Content="Storage Commitment (N-ACTION) – Empfang wird dem Gerät bestätigt"
+                                          IsChecked="{Binding Config.Dicom.EnableStorageCommit}" />
+                                <TextBlock Style="{StaticResource Hint}"
+                                           Text="C-ECHO ist immer aktiv. Storage Commitment beantwortet die Middleware über eine eigene Verbindung zur Gegenstelle – dafür muss das Gerät unten mit Host und Port eingetragen sein." />
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="Zugriffsschutz">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <CheckBox Grid.ColumnSpan="2" Content="Verbindungen von beliebigen Geräten (Calling AE) annehmen"
+                                          IsChecked="{Binding Config.Dicom.AcceptAnyCallingAe}" />
+
+                                <Label Grid.Row="1" Content="Erlaubte Calling-AE-Titel" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding AllowedCallingAes, UpdateSourceTrigger=PropertyChanged}"
+                                         IsEnabled="{Binding Config.Dicom.AcceptAnyCallingAe, Converter={x:Static local:InverseBoolConverter.Instance}}" />
+
+                                <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Content="Auch abweichende Called-AE-Titel akzeptieren"
+                                          IsChecked="{Binding Config.Dicom.AcceptAnyCalledAe}" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Gegenstellen (Sonogeräte, PACS)">
+                            <StackPanel>
+                                <DataGrid ItemsSource="{Binding Config.Dicom.RemoteNodes}" AutoGenerateColumns="False"
+                                          CanUserAddRows="True" CanUserDeleteRows="True" MinHeight="110" MaxHeight="200"
+                                          HeadersVisibility="Column" x:Name="RemoteNodeGrid">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Bezeichnung" Binding="{Binding Name}" Width="*" />
+                                        <DataGridTextColumn Header="AE-Titel" Binding="{Binding AeTitle}" Width="140" />
+                                        <DataGridTextColumn Header="Host / IP" Binding="{Binding Host}" Width="170" />
+                                        <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="70" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="Verbindung testen (C-ECHO)" Click="OnEchoTestClick" MinWidth="200" />
+                                    <TextBlock x:Name="EchoResultText" VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource Hint}"
+                                           Text="Markieren Sie eine Zeile und klicken Sie auf „Verbindung testen“." />
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="Ablage empfangener Objekte">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Label Content="Zwischenablage (Eingang)" />
+                                <TextBox Grid.Column="1" Text="{Binding Config.Dicom.IncomingDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Column="2" Content="…" MinWidth="34" Margin="6,2,0,2"
+                                        Tag="Dicom.IncomingDirectory" Click="OnBrowseFolderClick" />
+                            </Grid>
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== Worklist ==================== -->
+            <TabItem Header="  Worklist  " x:Name="WorklistTab">
+                <Grid Margin="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel>
+                        <GroupBox Header="Vorgaben für neue Aufträge">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" />
+                                    <ColumnDefinition Width="300" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Modality" />
+                                <TextBox Grid.Column="1" Text="{Binding Config.Worklist.Modality, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                           Text="US = Ultraschall" />
+
+                                <Label Grid.Row="1" Content="Scheduled Station AE" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.Worklist.ScheduledStationAeTitle, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                           Text="Leer lassen, wenn nur ein Gerät angebunden ist." />
+
+                                <Label Grid.Row="2" Content="Institution" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.Worklist.InstitutionName, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="3" Content="Untersuchungsbezeichnung" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Config.Worklist.DefaultProcedureDescription, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="4" Content="Auftragsnummer" />
+                                <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding AccessionModes}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding Config.Worklist.AccessionNumberMode}" />
+
+                                <Label Grid.Row="5" Content="Präfix Auftragsnummer" />
+                                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Config.Worklist.AccessionPrefix, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="6" Content="Gültigkeit (Stunden)" />
+                                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Config.Worklist.ItemLifetimeHours, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="7" Content="UID-Wurzel" />
+                                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Config.Worklist.UidRoot, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="7" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                           Text="Für den Produktivbetrieb eine eigene, registrierte OID eintragen." />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Aufräumen">
+                            <StackPanel>
+                                <CheckBox Content="Eintrag entfernen, sobald das Gerät die Untersuchung per MPPS abschließt"
+                                          IsChecked="{Binding Config.Worklist.RemoveOnMppsCompleted}" />
+                                <CheckBox Content="Eintrag entfernen, sobald die Bilder empfangen und exportiert sind"
+                                          IsChecked="{Binding Config.Worklist.RemoveAfterStudyExported}" />
+                            </StackPanel>
+                        </GroupBox>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,10">
+                            <Button Content="Jetzt aktualisieren" Click="OnRefreshWorklistClick" MinWidth="150" />
+                            <Button Content="Markierte Einträge löschen" Click="OnDeleteWorklistItemClick" MinWidth="190" />
+                            <TextBlock x:Name="WorklistUpdatedText" VerticalAlignment="Center" Margin="10,0,0,0"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       Text="Die Liste aktualisiert sich alle zwei Sekunden von selbst." />
+                            <TextBlock VerticalAlignment="Center" Margin="14,0,0,0"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       Text="Mehrfachauswahl mit Strg oder Umschalt." />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Worklist}" AutoGenerateColumns="False" IsReadOnly="True"
+                              x:Name="WorklistGrid" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                              SelectionMode="Extended" SelectionUnit="FullRow">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Auftragsnr." Binding="{Binding AccessionNumber}" Width="110" />
+                            <DataGridTextColumn Header="Patient" Binding="{Binding PatientName}" Width="*" />
+                            <DataGridTextColumn Header="Patienten-Nr." Binding="{Binding PatientId}" Width="110" />
+                            <DataGridTextColumn Header="geboren" Binding="{Binding BirthDate}" Width="90" />
+                            <DataGridTextColumn Header="geplant" Binding="{Binding ScheduledDate}" Width="90" />
+                            <DataGridTextColumn Header="Untersuchung" Binding="{Binding Procedure}" Width="170" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding State}" Width="100" />
+                            <DataGridTextColumn Header="abgerufen" Binding="{Binding QueryCount}" Width="80" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ==================== Export ==================== -->
+            <TabItem Header="  Rückweg / Export  ">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+
+                        <GroupBox Header="Wann gilt eine Untersuchung als abgeschlossen?">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label Content="Ruhezeit nach letztem Bild (s)" />
+                                <TextBox Grid.Column="1" Text="{Binding Config.Export.StudyIdleTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="1" Content="Spätestens nach (Minuten)" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.Export.StudyMaxAgeMinutes, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <CheckBox Grid.Row="2" Grid.ColumnSpan="3" Content="Sofort abschließen, wenn das Gerät per MPPS „COMPLETED“ meldet"
+                                          IsChecked="{Binding Config.Export.FinalizeOnMppsCompleted}" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Einzelbilder">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <CheckBox Grid.ColumnSpan="3" Content="Bilder als Einzeldateien exportieren"
+                                          IsChecked="{Binding Config.Export.ExportImages}" />
+
+                                <Label Grid.Row="1" Content="Format" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding ImageFormats}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding Config.Export.ImageFormat}"
+                                          HorizontalAlignment="Left" MinWidth="200" />
+
+                                <Label Grid.Row="2" Content="Verzeichnis" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.Export.ImageDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Row="2" Grid.Column="2" Content="…" MinWidth="34" Margin="6,2,0,2"
+                                        Tag="Export.ImageDirectory" Click="OnBrowseFolderClick" />
+
+                                <Label Grid.Row="3" Content="Dateiname" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Config.Export.ImageFileNamePattern, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Hint}"
+                                           Text="Platzhalter: {patid} {name} {date} {time} {accession} {index}" />
+
+                                <Label Grid.Row="5" Content="JPEG-Qualität / max. Breite" />
+                                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
+                                    <TextBox Width="80" Text="{Binding Config.Export.JpegQuality, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Text="  Pixelbreite:  " VerticalAlignment="Center" />
+                                    <TextBox Width="80" Text="{Binding Config.Export.MaxImageWidth, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Text="  (0 = Originalgröße)" VerticalAlignment="Center"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </StackPanel>
+
+                                <CheckBox Grid.Row="6" Grid.ColumnSpan="3" Content="Von Cine-Loops nur den ersten Frame exportieren"
+                                          IsChecked="{Binding Config.Export.FirstFrameOnlyForMultiframe}" />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="PDF-Befundblatt">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <CheckBox Grid.ColumnSpan="3" Content="Befundblatt als PDF erzeugen"
+                                          IsChecked="{Binding Config.Export.CreatePdf}" />
+
+                                <Label Grid.Row="1" Content="Verzeichnis" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.Export.PdfDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Row="1" Grid.Column="2" Content="…" MinWidth="34" Margin="6,2,0,2"
+                                        Tag="Export.PdfDirectory" Click="OnBrowseFolderClick" />
+
+                                <Label Grid.Row="2" Content="Dateiname" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.Export.PdfFileNamePattern, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="3" Content="Überschrift" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Config.Export.PdfHeaderTitle, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="4" Content="Praxisname" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Config.Export.PdfPracticeName, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="5" Content="Bilder pro Seite" />
+                                <TextBox Grid.Row="5" Grid.Column="1" HorizontalAlignment="Left" Width="80"
+                                         Text="{Binding Config.Export.PdfImagesPerPage, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <StackPanel Grid.Row="6" Grid.ColumnSpan="3">
+                                    <CheckBox Content="Bilder ins PDF übernehmen" IsChecked="{Binding Config.Export.PdfIncludeImages}" />
+                                    <CheckBox Content="Messwerte aus dem Structured Report ins PDF übernehmen"
+                                              IsChecked="{Binding Config.Export.PdfIncludeSrText}" />
+                                </StackPanel>
+
+                                <Label Grid.Row="7" Content="Dateiformat" />
+                                <ComboBox Grid.Row="7" Grid.Column="1" ItemsSource="{Binding PdfFormats}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding Config.Export.PdfFormat}"
+                                          HorizontalAlignment="Left" MinWidth="220" />
+
+                                <Label Grid.Row="8" Content="Verfasser (Metadaten)" />
+                                <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding Config.Export.PdfAuthor, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="8" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                           Text="Leer = Praxisname" />
+
+                                <TextBlock Grid.Row="9" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource Hint}"
+                                           Text="PDF/A-3b bettet Schriften und Farbprofil ein und ist das für die elektronische Patientenakte geforderte Langzeitformat. Die Dateien werden dadurch etwas größer." />
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="DICOM-Archiv">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <CheckBox Grid.ColumnSpan="3" Content="Original-DICOM-Dateien dauerhaft archivieren"
+                                          IsChecked="{Binding Config.Export.ArchiveDicom}" />
+
+                                <Label Grid.Row="1" Content="Archivverzeichnis" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.Export.DicomArchiveDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Row="1" Grid.Column="2" Content="…" MinWidth="34" Margin="6,2,0,2"
+                                        Tag="Export.DicomArchiveDirectory" Click="OnBrowseFolderClick" />
+
+                                <Label Grid.Row="2" Content="Ordnerstruktur" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.Export.DicomArchiveLayout, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Hint}"
+                                           Text="Platzhalter: {patid} {name} {date} {accession} {studyuid}" />
+
+                                <Border Grid.Row="4" Grid.ColumnSpan="3" Background="#FFF7E6" BorderBrush="#E0B300"
+                                        BorderThickness="1" Padding="10" Margin="0,10,0,8">
+                                    <StackPanel>
+                                        <CheckBox x:Name="LimitArchiveCheck" Content="Archiv automatisch begrenzen"
+                                                  IsChecked="{Binding Config.Export.LimitDicomArchive}" FontWeight="SemiBold" />
+                                        <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0"
+                                                   Text="Achtung: Die archivierten Untersuchungen sind Behandlungsunterlagen und unterliegen der ärztlichen Aufbewahrungspflicht. Schalten Sie die Begrenzung nur ein, wenn die Daten anderweitig gesichert sind. Gelöscht wird immer eine vollständige Untersuchung, nie einzelne Bilder daraus." />
+                                    </StackPanel>
+                                </Border>
+
+                                <Label Grid.Row="5" Content="Aufbewahrung (Tage)"
+                                       IsEnabled="{Binding IsChecked, ElementName=LimitArchiveCheck}" />
+                                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal"
+                                            IsEnabled="{Binding IsChecked, ElementName=LimitArchiveCheck}">
+                                    <TextBox Width="80" Text="{Binding Config.Export.DicomArchiveRetentionDays, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Text="  (0 = keine Altersgrenze)" VerticalAlignment="Center"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </StackPanel>
+
+                                <Label Grid.Row="6" Content="Maximalgröße (GB)"
+                                       IsEnabled="{Binding IsChecked, ElementName=LimitArchiveCheck}" />
+                                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal"
+                                            IsEnabled="{Binding IsChecked, ElementName=LimitArchiveCheck}">
+                                    <TextBox Width="80" Text="{Binding Config.Export.DicomArchiveMaxSizeGb, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Text="  (0 = keine Größengrenze; älteste Untersuchungen zuerst)" VerticalAlignment="Center"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="Archivgröße ermitteln" Click="OnMeasureArchiveClick" MinWidth="170" />
+                                    <TextBlock x:Name="ArchiveSizeText" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="GDT-Rücksatz an das PVS">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="300" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <CheckBox Grid.ColumnSpan="3" Content="Rücksatz schreiben"
+                                          IsChecked="{Binding Config.Export.WriteGdtResponse}" />
+
+                                <Label Grid.Row="1" Content="Dateiverweise als" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding PathModes}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Value" SelectedValue="{Binding Config.Export.AttachmentPathMode}" />
+
+                                <Label Grid.Row="2" Content="max. Anzahl Verweise" />
+                                <TextBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" Width="80"
+                                         Text="{Binding Config.Export.MaxAttachmentsInGdt, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Label Grid.Row="3" Content="Befund: max. Zeilen / Breite" />
+                                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                                    <TextBox Width="80" Text="{Binding Config.Export.MaxGdtBefundLines, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Text="  Zeichen/Zeile:  " VerticalAlignment="Center" />
+                                    <TextBox Width="80" Text="{Binding Config.Export.GdtBefundLineWidth, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="4" Grid.ColumnSpan="3">
+                                    <CheckBox Content="PDF als ersten Dateiverweis eintragen (viele PVS lesen nur den ersten)"
+                                              IsChecked="{Binding Config.Export.PdfAttachmentFirst}" />
+                                    <CheckBox Content="Messwerte aus Structured Reports als Befundtext übernehmen"
+                                              IsChecked="{Binding Config.Export.ExtractStructuredReport}" />
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== Über ==================== -->
+            <TabItem Header="  Über  " x:Name="AboutTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <Grid MaxWidth="900" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Image Source="Assets/pliete-logo.png" Width="240" Height="240"
+                               VerticalAlignment="Top" Margin="0,0,24,0"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                            <TextBlock Text="GDT2DICOM" FontSize="30" FontWeight="SemiBold"
+                                       Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="Middleware zwischen Praxisverwaltungssystem und Sonographie"
+                                       FontSize="14" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0" />
+                            <TextBlock x:Name="VersionText" Margin="0,10,0,0" />
+
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="Entwicklung und Support" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Anbieter" Margin="0,3" />
+                                <TextBlock Grid.Column="1" Text="Pliete.IT" Margin="0,3" FontWeight="SemiBold" />
+
+                                <TextBlock Grid.Row="1" Text="Website" Margin="0,3" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,3">
+                                    <Hyperlink NavigateUri="https://pliete.it" RequestNavigate="OnHyperlinkNavigate">
+                                        https://pliete.it
+                                    </Hyperlink>
+                                </TextBlock>
+
+                                <TextBlock Grid.Row="2" Text="E-Mail" Margin="0,3" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,3">
+                                    <Hyperlink NavigateUri="mailto:info@pliete.it" RequestNavigate="OnHyperlinkNavigate">
+                                        info@pliete.it
+                                    </Hyperlink>
+                                </TextBlock>
+
+                                <TextBlock Grid.Row="3" Text="Quellcode" Margin="0,3" />
+                                <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,3">
+                                    <Hyperlink NavigateUri="https://github.com/HEPHEPHEP/GDT2DICOM"
+                                               RequestNavigate="OnHyperlinkNavigate">
+                                        github.com/HEPHEPHEP/GDT2DICOM
+                                    </Hyperlink>
+                                </TextBlock>
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="Angaben für eine Supportanfrage" />
+                            <TextBox x:Name="SupportInfoBox" IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                                     Background="#F6F7F9" Padding="8" TextWrapping="NoWrap"
+                                     VerticalScrollBarVisibility="Auto" MaxHeight="150" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="Angaben kopieren" Click="OnCopySupportInfoClick" MinWidth="150" />
+                                <TextBlock x:Name="SupportCopyState" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </StackPanel>
+
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="Verwendete Bibliotheken" />
+                            <TextBlock Style="{StaticResource Hint}" Text="fo-dicom (MS-PL) – DICOM-Netzwerk und -Dateien" />
+                            <TextBlock Style="{StaticResource Hint}" Text="fo-dicom.Codecs (MS-PL / Apache 2.0) – komprimierte Transfersyntaxen" />
+                            <TextBlock Style="{StaticResource Hint}" Text="PdfSharp (MIT) – PDF- und PDF/A-Erzeugung" />
+                            <TextBlock Style="{StaticResource Hint}" Text="Serilog (Apache 2.0) – Protokollierung" />
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== Protokoll ==================== -->
+            <TabItem Header="  Protokoll  " x:Name="LogTab">
+                <Grid Margin="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Aktualisieren" Click="OnRefreshLogClick" />
+                        <Button Content="Logordner öffnen" Click="OnOpenLogFolderClick" MinWidth="140" />
+                        <CheckBox x:Name="AutoScrollLog" Content="automatisch mitlaufen" IsChecked="True"
+                                  VerticalAlignment="Center" Margin="12,0,0,0" />
+                    </StackPanel>
+
+                    <TextBox Grid.Row="1" x:Name="LogBox" Text="{Binding LogText, Mode=OneWay}"
+                             IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             TextWrapping="NoWrap" Background="#1E1E1E" Foreground="#DCDCDC" Padding="8" />
+
+                    <Grid Grid.Row="2" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Label Content="Protokollumfang" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding LogLevels}"
+                                  SelectedItem="{Binding Config.General.LogLevel}" />
+                        <TextBlock Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Text="Für die Fehlersuche „Debug“ wählen, im Normalbetrieb „Information“. Wirkt nach dem Speichern und einem Dienstneustart." />
+
+                        <CheckBox Grid.Row="1" Grid.ColumnSpan="3" x:Name="DeleteLogsCheck"
+                                  Content="Logs automatisch löschen"
+                                  IsChecked="{Binding Config.General.DeleteOldLogs}" />
+
+                        <Label Grid.Row="2" Content="Aufbewahrung (Tage)"
+                               IsEnabled="{Binding IsChecked, ElementName=DeleteLogsCheck}" />
+                        <TextBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" Width="80"
+                                 Text="{Binding Config.General.LogRetentionDays, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{Binding IsChecked, ElementName=DeleteLogsCheck}" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Text="Logdateien, die älter sind, werden beim Dienststart und danach alle sechs Stunden entfernt. Betrifft nur die eigenen Dateien (gdt2dicom-*.log)." />
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+        </TabControl>
+    </DockPanel>
+</Window>

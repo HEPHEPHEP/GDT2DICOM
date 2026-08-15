@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Gdt2Dicom.Service</RootNamespace>
+    <AssemblyName>GDT2DICOM.Service</AssemblyName>
+    <UserSecretsId>gdt2dicom-service</UserSecretsId>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <ApplicationIcon>..\..\assets\gdt2dicom.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GDT2DICOM.Core\GDT2DICOM.Core.csproj" />
+  </ItemGroup>
+
+</Project>
