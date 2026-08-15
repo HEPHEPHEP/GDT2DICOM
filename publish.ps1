@@ -48,6 +48,15 @@ if ($LASTEXITCODE -ne 0) { throw 'Publish des Testclients fehlgeschlagen.' }
 
 Copy-Item (Join-Path $root 'README.md') $dist -Force -ErrorAction SilentlyContinue
 
+# Die Bildschirmfotos gehoeren dazu, sonst zeigt das mitgelieferte README acht kaputte
+# Bildverweise. Der relative Pfad docs\screenshots bleibt dabei erhalten.
+$bilder = Join-Path $root 'docs\screenshots'
+if (Test-Path $bilder) {
+    $zielBilder = Join-Path $dist 'docs\screenshots'
+    New-Item -ItemType Directory -Force $zielBilder | Out-Null
+    Copy-Item (Join-Path $bilder '*') $zielBilder -Force
+}
+
 # Der Lizenztext gehoert zwingend ins Paket: Die GPL verlangt in Paragraph 4, dass jede
 # weitergegebene Kopie des Programms die Lizenz begleitet. Endung .txt, damit ein
 # Doppelklick unter Windows den Editor oeffnet; im Repository heisst die Datei LICENSE,
@@ -55,6 +64,14 @@ Copy-Item (Join-Path $root 'README.md') $dist -Force -ErrorAction SilentlyContin
 $lizenz = Join-Path $root 'LICENSE'
 if (-not (Test-Path $lizenz)) { throw "LICENSE fehlt - ohne Lizenztext darf das Paket nicht verteilt werden." }
 Copy-Item $lizenz (Join-Path $dist 'LICENSE.txt') -Force
+
+# Ohne die Zusatzerlaubnis nach GPL Paragraph 7 duerfte dieses Paket ueberhaupt nicht
+# weitergegeben werden: Die DICOM-Bibliotheken stehen unter der MS-PL, die die FSF als
+# nicht GPL-vertraeglich einstuft. Sie gehoert deshalb genauso zwingend ins Paket wie
+# der Lizenztext selbst.
+$ausnahme = Join-Path $root 'LICENSE-EXCEPTION.md'
+if (-not (Test-Path $ausnahme)) { throw "LICENSE-EXCEPTION.md fehlt - ohne sie ist die Weitergabe des Pakets nicht gedeckt." }
+Copy-Item $ausnahme (Join-Path $dist 'LICENSE-EXCEPTION.txt') -Force
 
 Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.md') $dist -Force -ErrorAction SilentlyContinue
 

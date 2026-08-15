@@ -938,8 +938,15 @@
                                 oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Einzelheiten stehen in der GNU General
                                 Public License.
                             </TextBlock>
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                                       MaxWidth="560" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                Zusätzlich gilt eine Erlaubnis nach § 7 der GPL, die das Binden gegen die
+                                verwendeten DICOM-Bibliotheken gestattet. Ohne sie dürfte dieses Paket nicht
+                                weitergegeben werden, weil deren Lizenz und die GPL sich widersprechen.
+                            </TextBlock>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                 <Button Content="Lizenztext anzeigen" Click="OnShowLicenseClick" MinWidth="150" />
+                                <Button Content="Zusatzerlaubnis" Click="OnShowExceptionClick" MinWidth="130" />
                                 <TextBlock VerticalAlignment="Center" Margin="8,0,0,0">
                                     <Hyperlink NavigateUri="https://www.gnu.org/licenses/gpl-3.0.html"
                                                RequestNavigate="OnHyperlinkNavigate">

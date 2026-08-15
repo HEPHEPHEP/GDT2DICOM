@@ -19,7 +19,7 @@ unter ihren eigenen Bedingungen. Deren Urheberrechtsvermerke bleiben davon unber
 | System.ServiceProcess.ServiceController | 10.0.11 | MIT |
 | .NET-Laufzeit (im Paket enthalten, self-contained) | 10.0 | MIT |
 
-## Offener Punkt: MS-PL und GPL
+## MS-PL neben der GPL
 
 fo-dicom steht unter der **Microsoft Public License**. Die Free Software Foundation
 stuft die MS-PL als freie, aber **nicht GPL-verträgliche** Lizenz ein: MS-PL § 3 (D)
@@ -30,8 +30,9 @@ nicht erfüllen.
 Betroffen ist nur die **Weitergabe** übersetzter Pakete, in denen beides zusammenkommt –
 also insbesondere das MSI. Der Quellcode für sich genommen wirft die Frage nicht auf.
 
-Der übliche Weg ist eine **zusätzliche Erlaubnis nach GPL § 7**, mit der der Urheber das
-Binden gegen die DICOM-Bibliotheken ausdrücklich gestattet. Ein solcher Zusatz ist hier
-bewusst **nicht** hinterlegt – er wäre eine Lizenzentscheidung des Rechteinhabers, nicht
-eine der Dokumentation. Solange er fehlt, sollte die Frage vor einer Weitergabe an Dritte
-geklärt sein.
+Der Rechteinhaber hat deshalb eine **zusätzliche Erlaubnis nach GPL § 7** erteilt, die das
+Binden gegen genau diese Bibliotheken gestattet. Wortlaut und Reichweite stehen in
+[LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md); im Installationsverzeichnis liegt sie als
+`LICENSE-EXCEPTION.txt`. Die Pflicht zur Herausgabe des Quellcodes bei Weitergabe eines
+übersetzten Pakets bleibt bestehen und erstreckt sich auf die mitverwendeten Teile dieser
+Bibliotheken.

@@ -134,6 +134,18 @@ Auf den übrigen Reitern konfigurieren, dann **Speichern und übernehmen**. Läu
 Alles steht in `C:\ProgramData\GDT2DICOM\config.json`. Die Datei wird beim ersten Start mit
 Standardwerten angelegt; normalerweise bearbeitet man sie nicht von Hand.
 
+Die Oberfläche hat acht Reiter. Die Aufnahmen unten zeigen einen laufenden Dienst mit
+Testdaten – drei eingelesene Aufträge, einer davon schon exportiert.
+
+### Reiter „Status“
+
+Zustand des Dienstes, Zähler seit dem Start und die Untersuchungen, deren Bilder gerade
+eintreffen. Von hier aus wird der Dienst installiert, gestartet und gestoppt; Windows fragt
+dabei nach Administratorrechten. **Zugriff prüfen** testet die eingestellten Verzeichnisse
+aus Sicht des Dienstkontos – bei Netzwerkfreigaben ist das der Unterschied, der zählt.
+
+![Reiter Status](docs/screenshots/01-status.png)
+
 ### Reiter „PVS / GDT“
 
 | Einstellung | Bedeutung |
@@ -147,6 +159,8 @@ Standardwerten angelegt; normalerweise bearbeitet man sie nicht von Hand.
 
 Die Schaltfläche **GDT-Testauftrag erzeugen** legt einen vollständigen Beispielauftrag im
 Eingang ab – damit lässt sich die Kette bis zur Worklist ohne PVS prüfen.
+
+![Reiter PVS / GDT](docs/screenshots/02-pvs-gdt.png)
 
 #### Wenn das PVS ein Programm aufruft
 
@@ -293,6 +307,8 @@ geschrieben und braucht keine Freigabe.
 > **Befundzeile** (Vorgabe 6220). Ein falsch belegter Anhangsverweis ist der häufigste Grund
 > dafür, dass Bilder im PVS nicht auftauchen.
 
+![Reiter Feldkennungen](docs/screenshots/03-feldkennungen.png)
+
 ### Reiter „DICOM“
 
 Diese Werte müssen mit der Konfiguration am Sonogerät zusammenpassen:
@@ -309,6 +325,22 @@ stehen: die Rückmeldung geht laut Standard über eine neue Verbindung zum Gerä
 muss also wissen, wo sie es erreicht.
 
 **Verbindung testen** schickt ein C-ECHO an die markierte Gegenstelle.
+
+![Reiter DICOM](docs/screenshots/04-dicom.png)
+
+### Reiter „Worklist“
+
+Oben die Vorgaben für neue Einträge: Modality, Institution, Auftragsnummer und die
+UID-Wurzel. Für den Produktivbetrieb gehört dort eine eigene, registrierte OID hinein –
+die Vorgabe ist eine allgemein gebräuchliche Wurzel und taugt nur zum Ausprobieren.
+
+Darunter steht die aktuelle Worklist, die sich von selbst aktualisiert. Einträge lassen sich
+mit Strg oder Umschalt mehrfach auswählen und löschen. Im Normalfall räumt sich die Liste
+selbst auf: Ein Eintrag verschwindet, sobald das Gerät die Untersuchung per MPPS abschließt
+oder die Bilder exportiert sind. In der Aufnahme sind deshalb nur noch zwei der drei
+Aufträge zu sehen – der dritte ist bereits fertig.
+
+![Reiter Worklist](docs/screenshots/05-worklist.png)
 
 ### Reiter „Rückweg / Export“
 
@@ -358,6 +390,8 @@ beim Betrachten nicht auffällt. Dateien, die keine `.dcm`-Dateien sind, bleiben
 > gesichert sind — etwa weil das PVS die Bilder ohnehin übernimmt oder eine Datensicherung
 > läuft.
 
+![Reiter Rückweg / Export](docs/screenshots/06-rueckweg-export.png)
+
 ### Reiter „Protokoll“
 
 `Logs automatisch löschen` entfernt Logdateien, die älter als die eingestellte Aufbewahrungsdauer
@@ -371,6 +405,22 @@ Protokoll mitzulöschen. Wer nichts automatisch löschen lassen will, nimmt das 
 Für das DICOM-Archiv gibt es eine eigene, standardmäßig ausgeschaltete Begrenzung im Reiter
 *Rückweg / Export*. Das Archiv verarbeiteter GDT-Aufträge wächst dagegen weiter; es ist
 klein (Textdateien) und dient der Nachvollziehbarkeit.
+
+Die Anzeige läuft mit, solange `automatisch mitlaufen` gesetzt ist. Für die Fehlersuche
+lohnt der Umfang **Debug** – dann steht jede DICOM-Assoziation mit ausgehandelten
+Presentation Contexts im Protokoll, wie in der Aufnahme zu sehen.
+
+![Reiter Protokoll](docs/screenshots/08-protokoll.png)
+
+### Reiter „Über“
+
+Version, Kontaktwege und die Angaben, die bei einer Supportanfrage regelmäßig gebraucht
+werden – Dienstzustand, Windows- und .NET-Version, die verwendeten Verzeichnisse und die
+Zähler. **Angaben kopieren** legt sie als Text in die Zwischenablage, das erspart die übliche
+Rückfragerunde. Darunter stehen Lizenz und Zusatzerlaubnis, beide direkt aus dem
+Installationsverzeichnis heraus zu öffnen.
+
+![Reiter Über](docs/screenshots/07-ueber.png)
 
 ## Testen ohne Sonogerät
 
@@ -437,6 +487,7 @@ src/GDT2DICOM.Connector/     Fremdprogramm für PVS, die die Schnittstelle per A
 tools/GDT2DICOM.TestClient/  Geräte-Simulator für Inbetriebnahme und Fehlersuche
 installer/                   WiX-Paketdefinition und Bauskript für GDT2DICOM.msi
 assets/                      Programmsymbol und Logo-Aufbereitung, jeweils mit Generator
+docs/screenshots/            Bildschirmfotos der Oberfläche, in diesem README eingebunden
 ```
 
 ## Programmsymbol
@@ -502,13 +553,17 @@ Was das praktisch heißt: Wer eine veränderte Fassung an Dritte weitergibt, mus
 Quellcode dieser Fassung unter denselben Bedingungen mitliefern. Für den Einsatz in der
 eigenen Einrichtung – auch verändert – entsteht keine solche Pflicht.
 
-### Ungeklärt: MS-PL neben der GPL
+### Zusätzliche Erlaubnis nach GPL § 7
 
-fo-dicom steht unter der Microsoft Public License, die die FSF als **nicht GPL-verträglich**
-einstuft. Betroffen ist die Weitergabe übersetzter Pakete an Dritte, also insbesondere das
-MSI – nicht der Quellcode für sich. Der übliche Ausweg ist eine zusätzliche Erlaubnis nach
-GPL § 7 für das Binden gegen diese Bibliotheken; sie ist hier bislang nicht erteilt.
-Einzelheiten in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Die verwendeten DICOM-Bibliotheken stehen unter der Microsoft Public License, die die FSF
+als nicht GPL-verträglich einstuft. Damit übersetzte Pakete – insbesondere das MSI –
+überhaupt weitergegeben werden dürfen, erlaubt der Rechteinhaber das Binden gegen diese
+Bibliotheken ausdrücklich. Wortlaut und Reichweite:
+[LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md), im Installationsverzeichnis als
+`LICENSE-EXCEPTION.txt`.
+
+Die Pflicht, bei Weitergabe eines übersetzten Pakets den Quellcode mitzuliefern, bleibt
+davon unberührt.
 
 ## Hinweis zum regulatorischen Rahmen
 

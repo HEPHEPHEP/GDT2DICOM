@@ -829,10 +829,22 @@ public partial class MainWindow : Window
     /// Programms die Lizenz begleitet – deshalb liegt LICENSE.txt neben der Anwendung und
     /// wird nicht bloß im Netz verlinkt. Fehlt sie, bleibt der Verweis auf gnu.org.
     /// </summary>
-    private void OnShowLicenseClick(object sender, RoutedEventArgs e)
+    private void OnShowLicenseClick(object sender, RoutedEventArgs e) =>
+        ZeigeLizenzdatei("LICENSE.txt", "https://www.gnu.org/licenses/gpl-3.0.txt");
+
+    /// <summary>
+    /// Zeigt die zusätzliche Erlaubnis nach GPL § 7. Sie begleitet das Paket aus demselben
+    /// Grund wie der Lizenztext selbst: Ohne sie ist nicht erkennbar, warum dieses Paket
+    /// trotz der MS-PL der DICOM-Bibliotheken weitergegeben werden darf.
+    /// </summary>
+    private void OnShowExceptionClick(object sender, RoutedEventArgs e) =>
+        ZeigeLizenzdatei("LICENSE-EXCEPTION.txt",
+                         "https://github.com/HEPHEPHEP/GDT2DICOM/blob/main/LICENSE-EXCEPTION.md");
+
+    private void ZeigeLizenzdatei(string dateiname, string ersatzverweis)
     {
-        var neben = Path.Combine(AppContext.BaseDirectory, "LICENSE.txt");
-        var ziel = File.Exists(neben) ? neben : "https://www.gnu.org/licenses/gpl-3.0.txt";
+        var neben = Path.Combine(AppContext.BaseDirectory, dateiname);
+        var ziel = File.Exists(neben) ? neben : ersatzverweis;
 
         try
         {
