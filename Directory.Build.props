@@ -9,8 +9,10 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SatelliteResourceLanguages>de;en</SatelliteResourceLanguages>
     <Product>GDT2DICOM</Product>
-    <Company>GDT2DICOM</Company>
-    <Version>1.0.0</Version>
+    <Company>Pliete.IT</Company>
+    <Version>1.0.1</Version>
+    <Copyright>Copyright (C) 2026 Pliete.IT</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <NeutralLanguage>de-DE</NeutralLanguage>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>

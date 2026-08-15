@@ -1,5 +1,7 @@
 # GDT2DICOM
 
+[![Lizenz: GPL v3](https://img.shields.io/badge/Lizenz-GPLv3-blue.svg)](LICENSE)
+
 Middleware zwischen einem Praxisverwaltungssystem (GDT) und einem Ultraschallgerät (DICOM) –
 in beide Richtungen, als Windows-Dienst, vollständig über eine Oberfläche konfigurierbar.
 
@@ -477,6 +479,36 @@ Kanten bekommen einen gleitenden Übergang.
 | fo-dicom.Codecs | komprimierte Transfersyntaxen | MS-PL / Apache 2.0 |
 | PdfSharp | PDF-Befundblatt | MIT |
 | Serilog | Protokollierung | Apache 2.0 |
+
+Vollständige Aufstellung mit Versionen: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Lizenz
+
+Copyright (C) 2026 Pliete.IT
+
+GDT2DICOM ist freie Software: Sie dürfen es unter den Bedingungen der GNU General Public
+License weitergeben und verändern, und zwar wahlweise nach Version 3 der Lizenz oder einer
+späteren Version.
+
+Die Veröffentlichung erfolgt in der Hoffnung, dass es nützlich ist, jedoch OHNE JEDE
+GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der MARKTGÄNGIGKEIT oder der
+EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Einzelheiten stehen in der GNU General Public License.
+
+Der vollständige Lizenztext liegt in [LICENSE](LICENSE) und im Installationsverzeichnis als
+`LICENSE.txt`; in der Oberfläche führt der Reiter **Über** darauf. Andernfalls:
+<https://www.gnu.org/licenses/>.
+
+Was das praktisch heißt: Wer eine veränderte Fassung an Dritte weitergibt, muss den
+Quellcode dieser Fassung unter denselben Bedingungen mitliefern. Für den Einsatz in der
+eigenen Einrichtung – auch verändert – entsteht keine solche Pflicht.
+
+### Ungeklärt: MS-PL neben der GPL
+
+fo-dicom steht unter der Microsoft Public License, die die FSF als **nicht GPL-verträglich**
+einstuft. Betroffen ist die Weitergabe übersetzter Pakete an Dritte, also insbesondere das
+MSI – nicht der Quellcode für sich. Der übliche Ausweg ist eine zusätzliche Erlaubnis nach
+GPL § 7 für das Binden gegen diese Bibliotheken; sie ist hier bislang nicht erteilt.
+Einzelheiten in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Hinweis zum regulatorischen Rahmen
 

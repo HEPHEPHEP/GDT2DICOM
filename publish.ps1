@@ -48,6 +48,16 @@ if ($LASTEXITCODE -ne 0) { throw 'Publish des Testclients fehlgeschlagen.' }
 
 Copy-Item (Join-Path $root 'README.md') $dist -Force -ErrorAction SilentlyContinue
 
+# Der Lizenztext gehoert zwingend ins Paket: Die GPL verlangt in Paragraph 4, dass jede
+# weitergegebene Kopie des Programms die Lizenz begleitet. Endung .txt, damit ein
+# Doppelklick unter Windows den Editor oeffnet; im Repository heisst die Datei LICENSE,
+# weil GitHub sie nur unter diesem Namen als Lizenz erkennt.
+$lizenz = Join-Path $root 'LICENSE'
+if (-not (Test-Path $lizenz)) { throw "LICENSE fehlt - ohne Lizenztext darf das Paket nicht verteilt werden." }
+Copy-Item $lizenz (Join-Path $dist 'LICENSE.txt') -Force
+
+Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.md') $dist -Force -ErrorAction SilentlyContinue
+
 $size = [math]::Round(((Get-ChildItem $dist -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1)
 
 Write-Host ""

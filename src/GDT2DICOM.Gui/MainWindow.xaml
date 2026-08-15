@@ -921,6 +921,33 @@
                                 <TextBlock x:Name="SupportCopyState" VerticalAlignment="Center" Margin="8,0,0,0" />
                             </StackPanel>
 
+                            <!--
+                                Die GPL verlangt in § 5 (d), dass eine interaktive Oberfläche den
+                                Urhebervermerk, den Gewährleistungsausschluss und den Weg zum Lizenztext
+                                zeigt. Diese Stelle ist dafür gedacht.
+                            -->
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="Lizenz" />
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                                       MaxWidth="560" HorizontalAlignment="Left">
+                                Copyright (C) 2026 Pliete.IT<LineBreak /><LineBreak />
+                                GDT2DICOM ist freie Software: Sie dürfen es unter den Bedingungen der GNU General
+                                Public License weitergeben und verändern, und zwar wahlweise nach Version 3 der
+                                Lizenz oder einer späteren Version.<LineBreak /><LineBreak />
+                                Die Veröffentlichung erfolgt in der Hoffnung, dass es nützlich ist, jedoch OHNE
+                                JEDE GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der MARKTGÄNGIGKEIT
+                                oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Einzelheiten stehen in der GNU General
+                                Public License.
+                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="Lizenztext anzeigen" Click="OnShowLicenseClick" MinWidth="150" />
+                                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0">
+                                    <Hyperlink NavigateUri="https://www.gnu.org/licenses/gpl-3.0.html"
+                                               RequestNavigate="OnHyperlinkNavigate">
+                                        gnu.org/licenses/gpl-3.0
+                                    </Hyperlink>
+                                </TextBlock>
+                            </StackPanel>
+
                             <TextBlock Style="{StaticResource SectionHeader}" Text="Verwendete Bibliotheken" />
                             <TextBlock Style="{StaticResource Hint}" Text="fo-dicom (MS-PL) – DICOM-Netzwerk und -Dateien" />
                             <TextBlock Style="{StaticResource Hint}" Text="fo-dicom.Codecs (MS-PL / Apache 2.0) – komprimierte Transfersyntaxen" />

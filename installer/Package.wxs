@@ -148,8 +148,15 @@
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
     <!--
-      Der Lizenzdialog entfällt: Eigene Nutzungsbedingungen sind hier nicht hinterlegt, und
-      ein Dialog, der zur Zustimmung zu einem Platzhaltertext auffordert, wäre irreführend.
+      Der Lizenzdialog entfällt, obwohl das Programm unter der GPLv3 steht: Die GPL ist keine
+      Nutzungsvereinbarung, der man vor der Installation zustimmt. Sie regelt Weitergabe und
+      Veränderung und gilt nach § 9 ausdrücklich ohne Annahmeerklärung; ein erzwungenes
+      "Ich stimme zu" würde etwas behaupten, das die Lizenz gar nicht verlangt.
+
+      Was die GPL sehr wohl verlangt (§ 4): Der Lizenztext begleitet jede Kopie. Er landet als
+      LICENSE.txt im Installationsverzeichnis – publish.ps1 legt ihn nach dist, von dort nimmt
+      ihn die erzeugte Dateiliste mit. Die Oberfläche zeigt ihn auf dem Reiter "Über".
+
       Der Weg führt daher direkt von der Begrüßung zur Ordnerauswahl.
     -->
     <UI>

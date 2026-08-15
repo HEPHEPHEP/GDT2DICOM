@@ -824,6 +824,28 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Zeigt den mitgelieferten Lizenztext. Die GPL verlangt in § 4, dass jede Kopie des
+    /// Programms die Lizenz begleitet – deshalb liegt LICENSE.txt neben der Anwendung und
+    /// wird nicht bloß im Netz verlinkt. Fehlt sie, bleibt der Verweis auf gnu.org.
+    /// </summary>
+    private void OnShowLicenseClick(object sender, RoutedEventArgs e)
+    {
+        var neben = Path.Combine(AppContext.BaseDirectory, "LICENSE.txt");
+        var ziel = File.Exists(neben) ? neben : "https://www.gnu.org/licenses/gpl-3.0.txt";
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(ziel) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Der Lizenztext konnte nicht geöffnet werden:\n\n{ziel}\n\n{ex.Message}",
+                "GDT2DICOM", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
     private void OnHyperlinkNavigate(object sender, RequestNavigateEventArgs e)
     {
         try
