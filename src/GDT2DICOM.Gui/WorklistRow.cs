@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Gdt2Dicom.Core.Ipc;
 
@@ -56,13 +57,31 @@ public sealed class WorklistRow : INotifyPropertyChanged
         AccessionNumber = dto.AccessionNumber,
         PatientId = dto.PatientId,
         PatientName = dto.PatientName,
-        BirthDate = dto.BirthDate,
-        ScheduledDate = dto.ScheduledDate,
+        BirthDate = FormatiereDatum(dto.BirthDate),
+        ScheduledDate = FormatiereDatum(dto.ScheduledDate),
         ScheduledTime = dto.ScheduledTime,
         Procedure = dto.Procedure,
         State = dto.State,
         QueryCount = dto.QueryCount
     };
+
+    /// <summary>
+    /// Macht aus dem DICOM-Datum <c>JJJJMMTT</c> die hierzulande übliche Schreibweise
+    /// <c>TT.MM.JJJJ</c>. Alles, was nicht diesem Muster entspricht, bleibt unverändert
+    /// stehen: Ein leeres oder unerwartet aufgebautes Feld soll sichtbar bleiben und nicht
+    /// still zu einem Strich werden – sonst fiele bei der Fehlersuche gerade das weg, worauf
+    /// es ankommt.
+    /// </summary>
+    internal static string FormatiereDatum(string? dicomDatum)
+    {
+        if (dicomDatum is null || dicomDatum.Length != 8)
+            return dicomDatum ?? "";
+
+        return DateTime.TryParseExact(dicomDatum, "yyyyMMdd", CultureInfo.InvariantCulture,
+                                      DateTimeStyles.None, out var datum)
+            ? datum.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)
+            : dicomDatum;
+    }
 
     /// <summary>Übernimmt die veränderlichen Werte, ohne die Objektidentität aufzugeben.</summary>
     public void Update(WorklistItemDto dto)
