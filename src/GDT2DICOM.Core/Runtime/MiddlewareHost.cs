@@ -409,6 +409,12 @@ public sealed class MiddlewareHost : IDicomEventSink, IAsyncDisposable
             });
         }
 
+        // Das Gerät kündigt mit IN PROGRESS an, dass es das Ende selbst meldet. Ab da setzt
+        // der Sammler die Ruhezeit aus – sonst zerfiele eine Untersuchung mit längeren
+        // Messpausen in mehrere Rücksätze.
+        if (mppsEvent.Status == MppsStatus.InProgress)
+            _collector.MarkInProgress(mppsEvent.StudyInstanceUid, mppsEvent.AccessionNumber, mppsEvent.SopInstanceUid);
+
         if (mppsEvent.Status is MppsStatus.Completed or MppsStatus.Discontinued)
         {
             _collector.MarkCompleted(mppsEvent.StudyInstanceUid, mppsEvent.AccessionNumber, mppsEvent.SopInstanceUid);

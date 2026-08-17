@@ -25,6 +25,8 @@ try
         "makedicom" => MakeTestImage(args),
         "makesr" => MakeTestReport(args),
         "mpps" => await MppsAsync(args),
+        "mppsstart" => await MppsStartAsync(args),
+        "mppsend" => await MppsEndAsync(args),
         "commit" => await CommitAsync(args),
         "musterbefund" => MakeSampleReport(args),
         _ => PrintUsage()
@@ -58,6 +60,14 @@ static int PrintUsage()
 
           mpps      <host> <port> <callingAE> <calledAE> <StudyUID> <Accession> <PatientenID>
                     Meldet Beginn und Ende einer Untersuchung (N-CREATE + N-SET).
+
+          mppsstart <host> <port> <callingAE> <calledAE> <StudyUID> <Accession> <PatientenID>
+                    Nur der Beginn (N-CREATE, "IN PROGRESS"). Gibt die MPPS-Instanz aus.
+                    Solange eine Untersuchung so als laufend gemeldet ist, schliesst die
+                    Middleware sie nicht wegen Ablauf der Ruhezeit ab.
+
+          mppsend   <host> <port> <callingAE> <calledAE> <StudyUID> <Accession> <PatientenID> <MppsUID>
+                    Nur der Abschluss (N-SET, "COMPLETED") auf die Instanz aus mppsstart.
 
           commit    <host> <port> <callingAE> <calledAE> <eigenerPort> <datei.dcm> [weitere.dcm ...]
                     Fordert Storage Commitment an und wartet auf die Rückmeldung
@@ -351,6 +361,69 @@ static int MakeSampleReport(string[] args)
 
     Console.WriteLine($"Muster-Befundblatt: {result}");
     return 0;
+}
+
+/// <summary>
+/// Nur N-CREATE mit „IN PROGRESS“. Gibt die MPPS-Instanz aus, damit ein späterer Aufruf von
+/// mppsend darauf verweisen kann. Getrennt von <c>mpps</c>, weil sich nur so prüfen lässt, wie
+/// sich die Middleware während einer laufenden Untersuchung verhält.
+/// </summary>
+static Task<int> MppsStartAsync(string[] args) => MppsPhaseAsync(args, "IN PROGRESS");
+
+/// <summary>Nur N-SET mit „COMPLETED“ auf eine vorhandene MPPS-Instanz.</summary>
+static Task<int> MppsEndAsync(string[] args) => MppsPhaseAsync(args, "COMPLETED");
+
+static async Task<int> MppsPhaseAsync(string[] args, string status)
+{
+    var abschluss = status == "COMPLETED";
+    if (args.Length < (abschluss ? 9 : 8))
+        return PrintUsage();
+
+    var (host, port, callingAe, calledAe) = (args[1], int.Parse(args[2]), args[3], args[4]);
+    var (studyUid, accession, patientId) = (args[5], args[6], args[7]);
+    var mppsUid = abschluss ? DicomUID.Parse(args[8]) : DicomUID.Generate();
+
+    var dataset = new DicomDataset
+    {
+        { DicomTag.PerformedProcedureStepStatus, status },
+        { DicomTag.PatientID, patientId },
+        { DicomTag.Modality, "US" },
+        { DicomTag.PerformedProcedureStepStartDate, DateTime.Now.ToString("yyyyMMdd") },
+        { DicomTag.PerformedProcedureStepStartTime, DateTime.Now.ToString("HHmmss") },
+        new DicomSequence(DicomTag.ScheduledStepAttributesSequence, new DicomDataset
+        {
+            { DicomTag.StudyInstanceUID, studyUid },
+            { DicomTag.AccessionNumber, accession }
+        })
+    };
+
+    var ok = true;
+    DicomRequest request = abschluss
+        ? new DicomNSetRequest(DicomUID.ModalityPerformedProcedureStep, mppsUid)
+        {
+            Dataset = dataset,
+            OnResponseReceived = (_, response) =>
+            {
+                Console.WriteLine($"  N-SET ({status}): {response.Status}");
+                if (response.Status != DicomStatus.Success) ok = false;
+            }
+        }
+        : new DicomNCreateRequest(DicomUID.ModalityPerformedProcedureStep, mppsUid)
+        {
+            Dataset = dataset,
+            OnResponseReceived = (_, response) =>
+            {
+                Console.WriteLine($"  N-CREATE ({status}): {response.Status}");
+                if (response.Status != DicomStatus.Success) ok = false;
+            }
+        };
+
+    var client = DicomClientFactory.Create(host, port, useTls: false, callingAe, calledAe);
+    await client.AddRequestAsync(request);
+    await client.SendAsync();
+
+    Console.WriteLine($"  MPPS-Instanz: {mppsUid.UID}");
+    return ok ? 0 : 1;
 }
 
 static async Task<int> MppsAsync(string[] args)

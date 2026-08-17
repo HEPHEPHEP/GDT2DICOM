@@ -350,8 +350,10 @@ public enum PdfFormat
 
 public sealed class ExportConfig
 {
-    [Description("Eine Studie gilt als abgeschlossen, wenn so viele Sekunden lang kein weiteres Bild eintrifft.")]
-    public int StudyIdleTimeoutSeconds { get; set; } = 20;
+    [Description("Eine Studie gilt als abgeschlossen, wenn so viele Sekunden lang kein weiteres Bild " +
+                 "eintrifft. 0 = keine Ruhezeit. Meldet das Gerät die Untersuchung per MPPS als laufend, " +
+                 "ruht die Ruhezeit ohnehin, bis das Gerät den Abschluss meldet.")]
+    public int StudyIdleTimeoutSeconds { get; set; } = 60;
 
     [Description("Harte Obergrenze: Studie spätestens nach so vielen Minuten abschließen.")]
     public int StudyMaxAgeMinutes { get; set; } = 30;

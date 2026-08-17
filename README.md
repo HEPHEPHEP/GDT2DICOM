@@ -344,10 +344,26 @@ Aufträge zu sehen – der dritte ist bereits fertig.
 
 ### Reiter „Rückweg / Export“
 
-Wann eine Untersuchung als abgeschlossen gilt, entscheidet die **Ruhezeit** (Vorgabe 20 s ohne
+Wann eine Untersuchung als abgeschlossen gilt, entscheidet die **Ruhezeit** (Vorgabe 60 s ohne
 weiteres Bild) oder eine MPPS-Meldung „COMPLETED“. Erst danach werden Bilder, PDF und der
 GDT-Rücksatz erzeugt – so landet eine Untersuchung als ein Vorgang im PVS und nicht als
 zwanzig Einzelmeldungen.
+
+#### Was gilt, wenn das Gerät MPPS meldet
+
+Meldet das Gerät eine Untersuchung per MPPS als **laufend**, entscheidet es selbst über das
+Ende: Die Ruhezeit greift dann nicht mehr, und auch eine Messpause von zehn Minuten zerreißt
+die Untersuchung nicht. Abgeschlossen wird erst auf „COMPLETED" oder „DISCONTINUED".
+
+Meldet das Gerät kein MPPS, bleibt die Ruhezeit die Rückfallebene. Deshalb ist sie ab Werk
+eingeschaltet: Ob ein bestimmtes Gerät MPPS beherrscht, steht in dessen Conformance Statement
+und lässt sich nicht voraussetzen. **`0` schaltet die Ruhezeit ab** – sinnvoll nur, wenn
+feststeht, dass das Gerät MPPS meldet, sonst bleibt jede Untersuchung bis zur harten
+Obergrenze (*Spätestens nach*, Vorgabe 30 Minuten) liegen.
+
+Trifft die MPPS-Abschlussmeldung ein, **bevor** das erste Bild da ist – MPPS und Bilder laufen
+über getrennte Verbindungen, die Reihenfolge ist nicht garantiert –, wird sie vorgemerkt und
+greift, sobald die Untersuchung auftaucht.
 
 `Dateiverweise als` steuert, ob im GDT-Satz der volle Pfad, ein relativer Pfad oder nur der
 Dateiname steht. Welche Variante das PVS erwartet, steht in dessen GDT-Doku.

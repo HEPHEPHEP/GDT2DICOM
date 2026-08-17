@@ -626,17 +626,24 @@
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <Label Content="Ruhezeit nach letztem Bild (s)" />
                                 <TextBox Grid.Column="1" Text="{Binding Config.Export.StudyIdleTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                           Text="0 = keine Ruhezeit. Meldet das Gerät MPPS, ruht sie ohnehin." />
 
                                 <Label Grid.Row="1" Content="Spätestens nach (Minuten)" />
                                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.Export.StudyMaxAgeMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                           Text="Letzte Rückfallebene, greift immer." />
 
                                 <CheckBox Grid.Row="2" Grid.ColumnSpan="3" Content="Sofort abschließen, wenn das Gerät per MPPS „COMPLETED“ meldet"
                                           IsChecked="{Binding Config.Export.FinalizeOnMppsCompleted}" />
+
+                                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                           Text="Sobald das Gerät eine Untersuchung per MPPS als laufend meldet, entscheidet es selbst über das Ende: Die Ruhezeit greift dann nicht mehr, auch längere Messpausen zerreißen die Untersuchung nicht. Meldet das Gerät kein MPPS, bleibt die Ruhezeit die Rückfallebene – deshalb sollte sie nur abgeschaltet werden, wenn feststeht, dass das Gerät MPPS beherrscht." />
                             </Grid>
                         </GroupBox>
 

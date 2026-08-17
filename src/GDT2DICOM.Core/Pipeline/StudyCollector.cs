@@ -24,6 +24,13 @@ public sealed class PendingStudy
     public string CallingAeTitle { get; set; } = "";
     public string? MppsSopInstanceUid { get; set; }
 
+    /// <summary>
+    /// Das Gerät hat für diese Untersuchung MPPS „IN PROGRESS“ gemeldet und damit angekündigt,
+    /// dass es das Ende selbst mitteilt. Solange das gilt, greift die Ruhezeit nicht – eine
+    /// Messpause von mehreren Minuten darf eine laufende Untersuchung nicht zerreißen.
+    /// </summary>
+    public bool MppsInProgress { get; set; }
+
     public bool ForceFinalize { get; set; }
 
     public override string ToString() => $"{StudyInstanceUid} ({Files.Count} Objekte, {PatientName})";
@@ -43,6 +50,16 @@ public sealed class StudyCollector : IAsyncDisposable
     private readonly Dictionary<string, PendingStudy> _studies = new(StringComparer.Ordinal);
     private readonly object _lock = new();
     private readonly SemaphoreSlim _finalizeLock = new(1, 1);
+
+    /// <summary>
+    /// MPPS-Meldungen, die eintrafen, bevor das erste Bild da war. Sie hier zu behalten ist
+    /// nötig, weil MPPS und Bilder über getrennte Associations laufen und die Reihenfolge
+    /// nicht garantiert ist. Früher wurde eine solche Meldung stillschweigend verworfen; mit
+    /// ausgeschalteter Ruhezeit bliebe die Untersuchung dann bis zur harten Obergrenze liegen.
+    /// </summary>
+    private readonly Dictionary<string, VorgemerktesMpps> _vorgemerkteMpps = new(StringComparer.OrdinalIgnoreCase);
+
+    private sealed record VorgemerktesMpps(string? MppsUid, bool Abgeschlossen, DateTime EingegangenUtc);
 
     private CancellationTokenSource? _cts;
     private Task? _timerTask;
@@ -126,22 +143,88 @@ public sealed class StudyCollector : IAsyncDisposable
             study.StudyTime = Prefer(study.StudyTime, ds.GetSingleValueOrDefault(DicomTag.StudyTime, string.Empty));
             study.Modality = Prefer(study.Modality, ds.GetSingleValueOrDefault(DicomTag.Modality, string.Empty));
             study.DeviceName = Prefer(study.DeviceName, ds.GetSingleValueOrDefault(DicomTag.ManufacturerModelName, string.Empty));
+
+            // Erst hier, weil die Accession Number oben aus dem Objekt kommt und eine
+            // vorgemerkte Meldung womöglich nur darüber zuzuordnen ist.
+            UebernehmeVorgemerktesUnsafe(study);
         }
     }
 
+    /// <summary>
+    /// Meldet, dass das Gerät die Untersuchung per MPPS begonnen hat. Ab da übernimmt das
+    /// Gerät die Entscheidung, wann Schluss ist – die Ruhezeit greift nicht mehr.
+    /// </summary>
+    public void MarkInProgress(string? studyInstanceUid, string? accessionNumber, string? mppsUid) =>
+        VermerkeMpps(studyInstanceUid, accessionNumber, mppsUid, abgeschlossen: false);
+
     /// <summary>Meldet, dass das Gerät die Untersuchung per MPPS abgeschlossen hat.</summary>
-    public void MarkCompleted(string? studyInstanceUid, string? accessionNumber, string? mppsUid)
+    public void MarkCompleted(string? studyInstanceUid, string? accessionNumber, string? mppsUid) =>
+        VermerkeMpps(studyInstanceUid, accessionNumber, mppsUid, abgeschlossen: true);
+
+    private void VermerkeMpps(string? studyInstanceUid, string? accessionNumber, string? mppsUid, bool abgeschlossen)
     {
         lock (_lock)
         {
             var study = FindUnsafe(studyInstanceUid, accessionNumber);
-            if (study is null)
-                return;
 
+            if (study is null)
+            {
+                // Bilder noch nicht da – Meldung aufheben, bis die Untersuchung auftaucht.
+                foreach (var schluessel in Schluessel(studyInstanceUid, accessionNumber))
+                    _vorgemerkteMpps[schluessel] = new VorgemerktesMpps(mppsUid, abgeschlossen, DateTime.UtcNow);
+
+                _logger.LogInformation(
+                    "MPPS {Status} für eine Untersuchung, zu der noch kein Objekt vorliegt – vorgemerkt.",
+                    abgeschlossen ? "COMPLETED" : "IN PROGRESS");
+                return;
+            }
+
+            AnwendenUnsafe(study, mppsUid, abgeschlossen);
+        }
+    }
+
+    private void AnwendenUnsafe(PendingStudy study, string? mppsUid, bool abgeschlossen)
+    {
+        if (!string.IsNullOrWhiteSpace(mppsUid))
             study.MppsSopInstanceUid = mppsUid;
+
+        if (abgeschlossen)
+        {
             study.ForceFinalize = true;
             _logger.LogInformation("Untersuchung {Uid} per MPPS als abgeschlossen gemeldet.", study.StudyInstanceUid);
         }
+        else
+        {
+            study.MppsInProgress = true;
+            _logger.LogInformation(
+                "Untersuchung {Uid} läuft laut MPPS – die Ruhezeit greift bis zur Abschlussmeldung nicht.",
+                study.StudyInstanceUid);
+        }
+    }
+
+    private void UebernehmeVorgemerktesUnsafe(PendingStudy study)
+    {
+        foreach (var schluessel in Schluessel(study.StudyInstanceUid, study.AccessionNumber))
+        {
+            if (!_vorgemerkteMpps.TryGetValue(schluessel, out var vermerk))
+                continue;
+
+            _vorgemerkteMpps.Remove(schluessel);
+            AnwendenUnsafe(study, vermerk.MppsUid, vermerk.Abgeschlossen);
+        }
+    }
+
+    /// <summary>
+    /// Study Instance UID und Accession Number als Schlüssel. Beides, weil eine MPPS-Meldung
+    /// mal das eine und mal das andere zuverlässig mitbringt.
+    /// </summary>
+    private static IEnumerable<string> Schluessel(string? studyInstanceUid, string? accessionNumber)
+    {
+        if (!string.IsNullOrWhiteSpace(studyInstanceUid))
+            yield return "S:" + studyInstanceUid;
+
+        if (!string.IsNullOrWhiteSpace(accessionNumber))
+            yield return "A:" + accessionNumber;
     }
 
     private PendingStudy? FindUnsafe(string? studyInstanceUid, string? accessionNumber)
@@ -179,6 +262,10 @@ public sealed class StudyCollector : IAsyncDisposable
     private async Task CheckDueStudiesAsync()
     {
         var config = _config().Export;
+
+        // 0 heißt aus. Der Wert wird sonst nach unten begrenzt, weil diese Schleife ohnehin
+        // nur alle drei Sekunden läuft – eine kürzere Ruhezeit wäre eine leere Zusage.
+        var idleAktiv = config.StudyIdleTimeoutSeconds > 0;
         var idle = TimeSpan.FromSeconds(Math.Max(3, config.StudyIdleTimeoutSeconds));
         var maxAge = TimeSpan.FromMinutes(Math.Max(1, config.StudyMaxAgeMinutes));
         var now = DateTime.UtcNow;
@@ -186,14 +273,27 @@ public sealed class StudyCollector : IAsyncDisposable
         List<PendingStudy> due;
         lock (_lock)
         {
+            // Die Ruhezeit ruht, solange das Gerät die Untersuchung per MPPS als laufend
+            // führt – dann kommt die Abschlussmeldung vom Gerät. Das gilt nur, wenn auf diese
+            // Meldung überhaupt reagiert wird; sonst bliebe die Untersuchung sonst liegen,
+            // bis die harte Obergrenze greift.
             due = _studies.Values
                 .Where(s => (config.FinalizeOnMppsCompleted && s.ForceFinalize)
-                            || now - s.LastInstanceUtc >= idle
+                            || (idleAktiv
+                                && !(config.FinalizeOnMppsCompleted && s.MppsInProgress)
+                                && now - s.LastInstanceUtc >= idle)
                             || now - s.FirstInstanceUtc >= maxAge)
                 .ToList();
 
             foreach (var study in due)
                 _studies.Remove(study.StudyInstanceUid);
+
+            // Vermerke, zu denen nie eine Untersuchung kam, nicht ewig aufheben.
+            foreach (var alt in _vorgemerkteMpps
+                         .Where(v => now - v.Value.EingegangenUtc >= maxAge)
+                         .Select(v => v.Key)
+                         .ToList())
+                _vorgemerkteMpps.Remove(alt);
         }
 
         foreach (var study in due)
