@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Erzeugt assets\gdt2dicom.ico (und eine PNG-Vorschau) aus einer in Code beschriebenen
     Zeichnung. Das Icon wird damit reproduzierbar und lässt sich ohne Grafikprogramm ändern.
@@ -320,5 +320,5 @@ $sizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
 [IconFactory]::WritePreview($PreviewPath, $sizes)
 
 $kb = [math]::Round((Get-Item $OutputPath).Length / 1kb, 1)
-Write-Host "Icon erzeugt: $OutputPath ($kb KB, Groessen: $($sizes -join ', '))"
+Write-Host "Icon erzeugt: $OutputPath ($kb KB, Größen: $($sizes -join ', '))"
 Write-Host "Vorschau:     $PreviewPath"

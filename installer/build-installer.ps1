@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Baut GDT2DICOM.msi.
 
@@ -34,14 +34,14 @@ if (-not (Get-Command wix -ErrorAction SilentlyContinue)) {
     throw "WiX fehlt. Einmalig einrichten mit:`n  dotnet tool install --global wix --version 6.0.2`n  wix extension add -g WixToolset.UI.wixext WixToolset.Util.wixext WixToolset.Firewall.wixext"
 }
 
-# --- 1. Anwendung veroeffentlichen -------------------------------------------------
-Write-Host "1/4  Anwendung veroeffentlichen ..." -ForegroundColor Cyan
+# --- 1. Anwendung veröffentlichen -------------------------------------------------
+Write-Host "1/4  Anwendung veröffentlichen ..." -ForegroundColor Cyan
 $publishArgs = @()
 if ($FrameworkDependent) { $publishArgs += '-FrameworkDependent' }
 & (Join-Path $root 'publish.ps1') @publishArgs -Configuration $Configuration | Out-Null
 
 if (-not (Test-Path (Join-Path $dist 'GDT2DICOM.Service.exe'))) {
-    throw "Im Veroeffentlichungsordner fehlt GDT2DICOM.Service.exe."
+    throw "Im Veröffentlichungsordner fehlt GDT2DICOM.Service.exe."
 }
 
 # --- 2. Version bestimmen ----------------------------------------------------------
@@ -55,8 +55,8 @@ Write-Host "2/4  Version $Version"
 # --- 3. Dateiliste erzeugen --------------------------------------------------------
 Write-Host "3/4  Dateiliste erzeugen ..." -ForegroundColor Cyan
 
-# GDT2DICOM.Service.exe wird ausgelassen: Sie steht in Package.wxs als Schluesselpfad der
-# Dienstkomponente. Windows Installer nimmt genau diesen Schluesselpfad als Programmdatei
+# GDT2DICOM.Service.exe wird ausgelassen: Sie steht in Package.wxs als Schlüsselpfad der
+# Dienstkomponente. Windows Installer nimmt genau diesen Schlüsselpfad als Programmdatei
 # des Dienstes - liegt die Exe in einer anderen Komponente, wird der Dienst nicht angelegt.
 $dienstExeName = 'GDT2DICOM.Service.exe'
 $dienstExePfad = Join-Path $dist $dienstExeName
@@ -64,7 +64,7 @@ $dienstExePfad = Join-Path $dist $dienstExeName
 $dateien = Get-ChildItem $dist -Recurse -File |
            Where-Object { $_.FullName -ne $dienstExePfad } |
            Sort-Object FullName
-if ($dateien.Count -eq 0) { throw "Der Veroeffentlichungsordner ist leer." }
+if ($dateien.Count -eq 0) { throw "Der Veröffentlichungsordner ist leer." }
 
 # Verzeichnisse unterhalb von dist auf WiX-Directory-Elemente abbilden
 $verzeichnisse = @{ '' = 'INSTALLFOLDER' }
@@ -92,7 +92,7 @@ $sb = New-Object System.Text.StringBuilder
 $offen = New-Object System.Collections.Generic.Stack[string]
 $vorher = ''
 foreach ($ordner in $alleOrdner) {
-    # Ebenen schliessen, die nicht mehr Praefix sind
+    # Ebenen schließen, die nicht mehr Präfix sind
     while ($offen.Count -gt 0 -and -not $ordner.StartsWith(($offen.ToArray() -join '\') , 'OrdinalIgnoreCase')) {
         [void]$sb.AppendLine(('      ' + ('  ' * $offen.Count) + '</Directory>'))
         [void]$offen.Pop()
@@ -110,7 +110,7 @@ while ($offen.Count -gt 0) {
 [void]$sb.AppendLine('    </DirectoryRef>')
 [void]$sb.AppendLine('')
 
-# Komponenten: eine Datei je Komponente, so verlangt es die MSI-Regel fuer saubere Updates
+# Komponenten: eine Datei je Komponente, so verlangt es die MSI-Regel für saubere Updates
 [void]$sb.AppendLine('    <ComponentGroup Id="ProgrammDateien">')
 $i = 0
 foreach ($datei in $dateien) {
@@ -154,9 +154,9 @@ Write-Host ""
 Write-Host "Fertig: $msi ($groesse MB)" -ForegroundColor Green
 Write-Host ""
 Write-Host "Installation:"
-Write-Host "  msiexec /i `"$msi`"                              mit Oberflaeche"
+Write-Host "  msiexec /i `"$msi`"                              mit Oberfläche"
 Write-Host "  msiexec /i `"$msi`" /qn                          unbeaufsichtigt"
-Write-Host "  msiexec /i `"$msi`" /qn FIREWALL=1 DICOMPORT=104 zusaetzlich Firewallregel"
+Write-Host "  msiexec /i `"$msi`" /qn FIREWALL=1 DICOMPORT=104 zusätzlich Firewallregel"
 Write-Host "  msiexec /x `"$msi`" /qn                          entfernen"
 Write-Host ""
 Write-Host "Konfiguration, Protokolle und DICOM-Archiv unter C:\ProgramData\GDT2DICOM"

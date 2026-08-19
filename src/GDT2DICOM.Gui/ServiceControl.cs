@@ -62,11 +62,16 @@ public static class ServiceControl
         if (exe is null)
             return (false, "GDT2DICOM.Service.exe wurde nicht gefunden. Liegt die Datei neben der Oberfläche?");
 
+        // chcp 65001 muss stehen bleiben, solange in diesem Skript Umlaute vorkommen:
+        // Die Datei wird als UTF-8 geschrieben, cmd.exe liest Batchdateien aber in der
+        // Codepage der Konsole – auf einem deutschen Windows üblicherweise 850. Ohne die
+        // Umschaltung käme bei sc.exe aus "Ultraschallgerät" ein "UltraschallgerÃ¤t" an.
         var script = $"""
             @echo off
+            chcp 65001 > nul
             sc.exe create "{ServiceName}" binPath= "\"{exe}\"" start= auto DisplayName= "{DisplayName}"
             if errorlevel 1 goto :fehler
-            sc.exe description "{ServiceName}" "Verbindet ein Praxisverwaltungssystem per GDT mit einem Ultraschallgeraet per DICOM (Worklist, Storage, MPPS)."
+            sc.exe description "{ServiceName}" "Verbindet ein Praxisverwaltungssystem per GDT mit einem Ultraschallgerät per DICOM (Worklist, Storage, MPPS)."
             sc.exe failure "{ServiceName}" reset= 86400 actions= restart/5000/restart/15000/restart/60000
             sc.exe start "{ServiceName}"
             exit /b 0
@@ -121,7 +126,10 @@ public static class ServiceControl
 
         try
         {
-            File.WriteAllText(path, script, System.Text.Encoding.Default);
+            // Ausdrücklich UTF-8 ohne BOM statt Encoding.Default: Der Wert ist unter .NET
+            // zwar ohnehin UTF-8, aber das Skript verlässt sich darauf – zusammen mit dem
+            // chcp 65001 in seiner ersten Zeile. Wer hier etwas ändert, muss beides ansehen.
+            File.WriteAllText(path, script, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
             var process = Process.Start(new ProcessStartInfo
             {

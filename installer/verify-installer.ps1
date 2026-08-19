@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Prüft GDT2DICOM.msi durch eine echte Installation. Benötigt Administratorrechte.
 
@@ -32,14 +32,14 @@ if ($Bericht) { Start-Transcript -Path $Bericht -Force | Out-Null }
 $erhoeht = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $erhoeht) {
     Write-Host "Dieses Skript braucht Administratorrechte." -ForegroundColor Red
-    Write-Host "Bitte PowerShell als Administrator starten und erneut ausfuehren."
+    Write-Host "Bitte PowerShell als Administrator starten und erneut ausführen."
     if ($Bericht) { Stop-Transcript | Out-Null }
     exit 1
 }
 
 if (-not (Test-Path $Msi)) {
     Write-Host "Paket nicht gefunden: $Msi" -ForegroundColor Red
-    Write-Host "Zuerst .\build-installer.ps1 ausfuehren."
+    Write-Host "Zuerst .\build-installer.ps1 ausführen."
     if ($Bericht) { Stop-Transcript | Out-Null }
     exit 1
 }
@@ -59,9 +59,9 @@ Write-Host "Dienst da:    $($null -ne (Get-Service GDT2DICOM -ErrorAction Silent
 Write-Host "Programm da:  $(Test-Path $programm)"
 Write-Host "Daten da:     $(Test-Path $daten)"
 
-# Markierung setzen: sie muss die Deinstallation ueberleben
+# Markierung setzen: sie muss die Deinstallation überleben
 New-Item -ItemType Directory -Force $daten | Out-Null
-"Diese Datei muss eine Deinstallation ueberstehen. Erzeugt $(Get-Date -Format s)." |
+"Diese Datei muss eine Deinstallation überstehen. Erzeugt $(Get-Date -Format s)." |
     Set-Content $markierung -Encoding UTF8
 $datenVorher = @(Get-ChildItem $daten -Recurse -File -ErrorAction SilentlyContinue).Count
 Write-Host "Dateien unter ProgramData vorher: $datenVorher (inklusive Markierung)"
@@ -69,7 +69,7 @@ Write-Host "Dateien unter ProgramData vorher: $datenVorher (inklusive Markierung
 # ================= INSTALLATION =================
 Write-Host "`n================ INSTALLATION ================" -ForegroundColor Cyan
 $p = Start-Process msiexec.exe -ArgumentList @('/i', "`"$Msi`"", '/qn', '/l*v', "`"$protokoll`"") -Wait -PassThru
-Write-Host "msiexec Rueckgabewert: $($p.ExitCode)  (0 = erfolgreich, 3010 = Neustart empfohlen)"
+Write-Host "msiexec Rückgabewert: $($p.ExitCode)  (0 = erfolgreich, 3010 = Neustart empfohlen)"
 Pruefe 'Installation erfolgreich' ($p.ExitCode -in 0, 3010) | Out-Null
 
 Start-Sleep -Seconds 3
@@ -83,7 +83,7 @@ if ($dienst) {
     Write-Host "   Konto       : $($wmi.StartName)"
     Write-Host "   Pfad        : $($wmi.PathName)"
     Pruefe 'Dienst registriert'        $true | Out-Null
-    Pruefe 'Dienst laeuft'             ($dienst.Status -eq 'Running') | Out-Null
+    Pruefe 'Dienst läuft'             ($dienst.Status -eq 'Running') | Out-Null
     Pruefe 'Start automatisch'         ($wmi.StartMode -eq 'Auto') | Out-Null
     Pruefe 'Pfad in Program Files'     ($wmi.PathName -like "*$programm*") | Out-Null
 } else {
@@ -104,8 +104,8 @@ foreach ($n in 'GDT2DICOM.Service.exe','GDT2DICOM.Konfiguration.exe','GDT2DICOM.
     Write-Host ("   {0,-32} {1}" -f $n, $(if ($da) { 'da' } else { 'FEHLT' }))
     Pruefe "Datei $n" $da | Out-Null
 }
-Pruefe 'Startmenue-Verknuepfung' (Test-Path $verknuepfung) | Out-Null
-Write-Host "   Startmenue-Verknuepfung: $(Test-Path $verknuepfung)"
+Pruefe 'Startmenü-Verknüpfung' (Test-Path $verknuepfung) | Out-Null
+Write-Host "   Startmenü-Verknüpfung: $(Test-Path $verknuepfung)"
 
 Write-Host "`nEintrag in Programme und Features:"
 $arp = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
@@ -132,8 +132,8 @@ try {
     $pipe.Dispose()
     $status = ($antwort | ConvertFrom-Json).Payload | ConvertFrom-Json
     Write-Host "   Steuerkanal antwortet."
-    Write-Host "   DICOM-Server: $(if ($status.DicomServerRunning) { "laeuft als $($status.DicomAeTitle) auf Port $($status.DicomPort)" } else { "nicht aktiv: $($status.DicomServerError)" })"
-    Write-Host "   GDT-Ueberwachung: $(if ($status.GdtWatcherRunning) { "laeuft auf $($status.GdtInboxDirectory)" } else { 'nicht aktiv' })"
+    Write-Host "   DICOM-Server: $(if ($status.DicomServerRunning) { "läuft als $($status.DicomAeTitle) auf Port $($status.DicomPort)" } else { "nicht aktiv: $($status.DicomServerError)" })"
+    Write-Host "   GDT-Überwachung: $(if ($status.GdtWatcherRunning) { "läuft auf $($status.GdtInboxDirectory)" } else { 'nicht aktiv' })"
     $pipeOk = $true
 } catch {
     Write-Host "   Steuerkanal nicht erreichbar: $($_.Exception.Message)" -ForegroundColor Red
@@ -150,21 +150,21 @@ if ($log) {
 # ================= DEINSTALLATION =================
 if ($Behalten) {
     Write-Host "`n================ BLEIBT INSTALLIERT ================" -ForegroundColor Yellow
-    Write-Host "Entfernen spaeter mit:  msiexec /x `"$Msi`" /qn"
+    Write-Host "Entfernen später mit:  msiexec /x `"$Msi`" /qn"
 } else {
     Write-Host "`n================ DEINSTALLATION ================" -ForegroundColor Cyan
     $p = Start-Process msiexec.exe -ArgumentList @('/x', "`"$Msi`"", '/qn', '/l*v', "`"$protokoll.deinstall`"") -Wait -PassThru
-    Write-Host "msiexec Rueckgabewert: $($p.ExitCode)"
+    Write-Host "msiexec Rückgabewert: $($p.ExitCode)"
     Pruefe 'Deinstallation erfolgreich' ($p.ExitCode -in 0, 3010) | Out-Null
 
     Start-Sleep -Seconds 3
     $dienstDanach = Get-Service -Name 'GDT2DICOM' -ErrorAction SilentlyContinue
     Write-Host "   Dienst noch vorhanden:      $($null -ne $dienstDanach)"
     Write-Host "   Programmordner noch da:     $(Test-Path $programm)"
-    Write-Host "   Verknuepfung noch da:       $(Test-Path $verknuepfung)"
+    Write-Host "   Verknüpfung noch da:       $(Test-Path $verknuepfung)"
     Pruefe 'Dienst entfernt'        ($null -eq $dienstDanach) | Out-Null
     Pruefe 'Programmordner entfernt' (-not (Test-Path $programm)) | Out-Null
-    Pruefe 'Verknuepfung entfernt'   (-not (Test-Path $verknuepfung)) | Out-Null
+    Pruefe 'Verknüpfung entfernt'   (-not (Test-Path $verknuepfung)) | Out-Null
 
     Write-Host "`n   --- Der entscheidende Punkt: Behandlungsdaten ---"
     $markierungDa = Test-Path $markierung
@@ -172,8 +172,8 @@ if ($Behalten) {
     Write-Host "   ProgramData noch vorhanden: $(Test-Path $daten)"
     Write-Host "   Markierungsdatei noch da:   $markierungDa"
     Write-Host "   Dateien vorher/nachher:     $datenVorher / $datenNachher"
-    Pruefe 'ProgramData ueberlebt'      (Test-Path $daten) | Out-Null
-    Pruefe 'Markierungsdatei ueberlebt' $markierungDa | Out-Null
+    Pruefe 'ProgramData überlebt'      (Test-Path $daten) | Out-Null
+    Pruefe 'Markierungsdatei überlebt' $markierungDa | Out-Null
     Pruefe 'Keine Datei verloren'       ($datenNachher -ge $datenVorher) | Out-Null
 }
 
@@ -187,7 +187,7 @@ foreach ($k in $e.Keys) {
 Write-Host ""
 Write-Host "=== INSTALLER-PRUEFUNG: $(if ($alle) { 'BESTANDEN' } else { 'FEHLGESCHLAGEN' }) ===" -ForegroundColor $(if ($alle) { 'Green' } else { 'Red' })
 Write-Host ""
-Write-Host "Ausfuehrliches msiexec-Protokoll: $protokoll"
+Write-Host "Ausführliches msiexec-Protokoll: $protokoll"
 
 Remove-Item $markierung -Force -ErrorAction SilentlyContinue
 

@@ -298,6 +298,21 @@ Systemkonto kombiniert sind.
 Das **Datenverzeichnis** (Worklist, Rückstau, Zähler) sollte lokal bleiben. Es wird häufig
 geschrieben und braucht keine Freigabe.
 
+### Umlaute
+
+In Verzeichnisnamen sind Umlaute unbedenklich – `C:\GDT2DICOM\Aufträge` und
+`\\server\freigabe\Rückschrieb` funktionieren. Windows speichert Dateinamen als Unicode, und
+die Middleware reicht Pfade unverändert durch. Ebenso in allen Bezeichnungen, die nur
+angezeigt oder in DICOM-Felder geschrieben werden: der Name einer Gegenstelle, Institution,
+Praxisname, Untersuchungsbezeichnung. Für den GDT-Rücksatz muss der eingestellte Zeichensatz
+Umlaute können – ISO 8859-1 und UTF-8 tun das, die 7-Bit-Variante nicht.
+
+**Nicht in AE-Titel.** Der DICOM-Standard beschränkt das Datenformat AE auf das
+Basiszeichenrepertoire; ein Gerät darf eine Verbindung mit Umlaut im AE-Titel zurückweisen.
+Betroffen sind der eigene AE-Titel, die Positivliste der Calling-AE-Titel und die Spalte
+*AE-Titel* der Gegenstellen. Die Spalte *Bezeichnung* daneben ist reine Anzeige und darf
+Umlaute enthalten.
+
 ### Reiter „Feldkennungen”
 
 > **Wichtig:** Die Vorgaben folgen der verbreiteten Konvention, aber einzelne PVS belegen

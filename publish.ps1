@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Erstellt ein verteilbares Paket von GDT2DICOM unter .\dist.
 
@@ -31,14 +31,14 @@ $common = @(
     '-p:DebugType=none'
 )
 
-Write-Host "Veroeffentliche GDT2DICOM ($(if ($selfContained) { 'self-contained' } else { 'framework-dependent' })) ..." -ForegroundColor Cyan
+Write-Host "Veröffentliche GDT2DICOM ($(if ($selfContained) { 'self-contained' } else { 'framework-dependent' })) ..." -ForegroundColor Cyan
 
-# Dienst und Oberflaeche landen im selben Ordner: die GUI sucht die Dienst-Exe daneben.
+# Dienst und Oberfläche landen im selben Ordner: die GUI sucht die Dienst-Exe daneben.
 dotnet publish (Join-Path $root 'src\GDT2DICOM.Service\GDT2DICOM.Service.csproj') @common -o $dist
 if ($LASTEXITCODE -ne 0) { throw 'Publish des Dienstes fehlgeschlagen.' }
 
 dotnet publish (Join-Path $root 'src\GDT2DICOM.Gui\GDT2DICOM.Gui.csproj') @common -o $dist
-if ($LASTEXITCODE -ne 0) { throw 'Publish der Oberflaeche fehlgeschlagen.' }
+if ($LASTEXITCODE -ne 0) { throw 'Publish der Oberfläche fehlgeschlagen.' }
 
 dotnet publish (Join-Path $root 'src\GDT2DICOM.Connector\GDT2DICOM.Connector.csproj') @common -o $dist
 if ($LASTEXITCODE -ne 0) { throw 'Publish des Connectors fehlgeschlagen.' }
@@ -48,7 +48,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Publish des Testclients fehlgeschlagen.' }
 
 Copy-Item (Join-Path $root 'README.md') $dist -Force -ErrorAction SilentlyContinue
 
-# Die Bildschirmfotos gehoeren dazu, sonst zeigt das mitgelieferte README acht kaputte
+# Die Bildschirmfotos gehören dazu, sonst zeigt das mitgelieferte README acht kaputte
 # Bildverweise. Der relative Pfad docs\screenshots bleibt dabei erhalten.
 $bilder = Join-Path $root 'docs\screenshots'
 if (Test-Path $bilder) {
@@ -57,17 +57,17 @@ if (Test-Path $bilder) {
     Copy-Item (Join-Path $bilder '*') $zielBilder -Force
 }
 
-# Der Lizenztext gehoert zwingend ins Paket: Die GPL verlangt in Paragraph 4, dass jede
+# Der Lizenztext gehört zwingend ins Paket: Die GPL verlangt in Paragraph 4, dass jede
 # weitergegebene Kopie des Programms die Lizenz begleitet. Endung .txt, damit ein
-# Doppelklick unter Windows den Editor oeffnet; im Repository heisst die Datei LICENSE,
+# Doppelklick unter Windows den Editor öffnet; im Repository heißt die Datei LICENSE,
 # weil GitHub sie nur unter diesem Namen als Lizenz erkennt.
 $lizenz = Join-Path $root 'LICENSE'
 if (-not (Test-Path $lizenz)) { throw "LICENSE fehlt - ohne Lizenztext darf das Paket nicht verteilt werden." }
 Copy-Item $lizenz (Join-Path $dist 'LICENSE.txt') -Force
 
-# Ohne die Zusatzerlaubnis nach GPL Paragraph 7 duerfte dieses Paket ueberhaupt nicht
+# Ohne die Zusatzerlaubnis nach GPL Paragraph 7 dürfte dieses Paket überhaupt nicht
 # weitergegeben werden: Die DICOM-Bibliotheken stehen unter der MS-PL, die die FSF als
-# nicht GPL-vertraeglich einstuft. Sie gehoert deshalb genauso zwingend ins Paket wie
+# nicht GPL-verträglich einstuft. Sie gehört deshalb genauso zwingend ins Paket wie
 # der Lizenztext selbst.
 $ausnahme = Join-Path $root 'LICENSE-EXCEPTION.md'
 if (-not (Test-Path $ausnahme)) { throw "LICENSE-EXCEPTION.md fehlt - ohne sie ist die Weitergabe des Pakets nicht gedeckt." }
@@ -80,7 +80,7 @@ $size = [math]::Round(((Get-ChildItem $dist -Recurse -File | Measure-Object Leng
 Write-Host ""
 Write-Host "Fertig: $dist ($size MB)" -ForegroundColor Green
 Write-Host ""
-Write-Host "Naechste Schritte auf dem Zielrechner:"
+Write-Host "Nächste Schritte auf dem Zielrechner:"
 Write-Host "  1. Den Ordner nach C:\Program Files\GDT2DICOM kopieren."
 Write-Host "  2. GDT2DICOM.Konfiguration.exe starten."
 Write-Host "  3. Auf dem Reiter Status auf 'Installieren' klicken (Adminrechte)."

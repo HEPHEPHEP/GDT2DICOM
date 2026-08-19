@@ -89,7 +89,7 @@
       <ServiceInstall Id="DienstEintrag"
                       Name="GDT2DICOM"
                       DisplayName="GDT2DICOM Middleware (PVS - Sonographie)"
-                      Description="Verbindet ein Praxisverwaltungssystem per GDT mit einem Ultraschallgeraet per DICOM (Worklist, Storage, MPPS)."
+                      Description="Verbindet ein Praxisverwaltungssystem per GDT mit einem Ultraschallgerät per DICOM (Worklist, Storage, MPPS)."
                       Type="ownProcess"
                       Start="auto"
                       ErrorControl="normal"
@@ -138,7 +138,7 @@
                      Name="Firewall" Type="integer" Value="1" KeyPath="yes" />
       <fw:FirewallException Id="DicomEingehend"
                             Name="GDT2DICOM (DICOM)"
-                            Description="Eingehende DICOM-Verbindungen vom Ultraschallgeraet"
+                            Description="Eingehende DICOM-Verbindungen vom Ultraschallgerät"
                             Port="[DICOMPORT]"
                             Protocol="tcp"
                             Scope="localSubnet"

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Erzeugt aus logo.png die Fassung, die die Oberfläche einbettet:
     verkleinert und mit freigestelltem Hintergrund.
@@ -40,7 +40,7 @@ $original.Dispose()
 # Freistellen
 $untenVoll = 225   # ab hier voll deckend
 $obenLeer  = 250   # ab hier vollständig transparent
-$maxBuntheit = 14  # groesserer Abstand zwischen den Kanaelen heisst: farbig, also Motiv
+$maxBuntheit = 14  # größerer Abstand zwischen den Kanälen heißt: farbig, also Motiv
 
 $freigestellt = New-Object System.Drawing.Bitmap($Breite, $hoehe, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
 $entfernt = 0
@@ -73,5 +73,5 @@ $freigestellt.Dispose()
 
 $anteil = [math]::Round(100 * $entfernt / ($Breite * $hoehe))
 Write-Host "Logo erzeugt: $Ziel"
-Write-Host ("  {0}x{1}, {2} KB, {3} % der Flaeche freigestellt" -f `
+Write-Host ("  {0}x{1}, {2} KB, {3} % der Fläche freigestellt" -f `
     $Breite, $hoehe, [math]::Round((Get-Item $Ziel).Length / 1kb), $anteil)
